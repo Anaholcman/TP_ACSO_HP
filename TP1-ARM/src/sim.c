@@ -2,15 +2,6 @@
 #include <assert.h>
 #include <string.h>
 
-<<<<<<< Updated upstream
-void process_instruction()
-{
-    /* execute one instruction here. You should use CURRENT_STATE and modify
-     * values in NEXT_STATE. You can call mem_read_32() and mem_write_32() to
-     * access memory. 
-     * */
-}
-=======
 void mem_write_8(uint64_t address, uint8_t value) {
     uint32_t data = mem_read_32(address);
     data = (data & 0xFFFFFF00) | (value & 0xFF);

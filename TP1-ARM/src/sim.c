@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <string.h>
 #include <stdint.h>
+#include "shell.h"
 
 void mem_write_8(uint64_t address, uint8_t value) {
     uint32_t data = mem_read_32(address);

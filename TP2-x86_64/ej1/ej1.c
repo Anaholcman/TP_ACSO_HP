@@ -1,16 +1,69 @@
 #include "ej1.h"
 
 string_proc_list* string_proc_list_create(void){
-}
+	string_proc_list *list = malloc(sizeof(string_proc_list));
+	if (!list) {
+		// no se hizo el malloc
+		exit(EXIT_FAILURE);
+	}
+	list->first = NULL;
+	list->last  = NULL;
+	return list;
+}	
 
 string_proc_node* string_proc_node_create(uint8_t type, char* hash){
+	string_proc_node *node = malloc(sizeof(string_proc_node));
+	if (!node) {
+		// no se hizo el malloc
+		exit(EXIT_FAILURE);
+	}
+	node->next      = NULL;
+	node->previous  = NULL;
+	node->hash      = hash;
+	node->type      = type;			
+	return node;
 }
 
 void string_proc_list_add_node(string_proc_list* list, uint8_t type, char* hash){
+	string_proc_node* new_node = string_proc_node_create(type, hash);
+	// si lista vacia es el primer y ult
+	if (list->first == NULL) {
+		list->first = new_node;
+		list->last  = new_node;
+	} else {
+		new_node->previous = list->last;
+		list->last->next   = new_node;
+		list->last        = new_node;
+	}
+	return; // quizas omitir
 }
 
 char* string_proc_list_concat(string_proc_list* list, uint8_t type , char* hash){
+	//Genera un nuevo hash concatenando el pasado por parámetro con todos los hashes 
+	//de los nodos de la lista cuyos tipos coinciden con el pasado por parámetro
+	// y devuelve el nuevo hash.
+	char* new_hash = NULL;
+	if (list->first == NULL || list->last == NULL) {
+		return hash;
+	}
+	//string_proc_node* current_node = list->first;
+
+	for (string_proc_node* current_node = list->first; current_node != NULL; current_node = current_node->next) {
+		if (current_node ->type == type) {
+			if (new_hash == NULL) {
+				new_hash = malloc(strlen(current_node->hash) + 1);
+				strcpy(new_hash, current_node->hash);
+			} else {
+				char* temp = str_concat(new_hash, current_node->hash);
+				free(new_hash);
+				new_hash = temp;
+			}
+		}
+	}
+	return new_hash;
+
 }
+
 
 
 /** AUX FUNCTIONS **/

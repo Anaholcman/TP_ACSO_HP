@@ -47,19 +47,15 @@ char* string_proc_list_concat(string_proc_list* list, uint8_t type , char* hash)
 		if (copy) strcpy(copy, hash);
 		return copy;
 	}
-	char* new_hash = NULL;
-	//string_proc_node* current_node = list->first;
+	char* new_hash = malloc(strlen(hash) + 1);
+	if (!new_hash) return NULL;
+	strcpy(new_hash, hash);
 
 	for (string_proc_node* current_node = list->first; current_node != NULL; current_node = current_node->next) {
-		if (current_node ->type == type) {
-			if (new_hash == NULL) {
-				new_hash = malloc(strlen(current_node->hash) + 1);
-				strcpy(new_hash, current_node->hash);
-			} else {
-				char* temp = str_concat(new_hash, current_node->hash);
-				free(new_hash);
-				new_hash = temp;
-			}
+		if (current_node->type == type) {
+			char* temp = str_concat(new_hash, current_node->hash);
+			free(new_hash);
+			new_hash = temp;
 		}
 	}
 	return new_hash;

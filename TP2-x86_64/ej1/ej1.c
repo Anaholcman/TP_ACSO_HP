@@ -3,7 +3,7 @@
 string_proc_list* string_proc_list_create(void){
 	string_proc_list *list = malloc(sizeof(string_proc_list));
 	if (!list) {
-		exit(EXIT_FAILURE);
+		return NULL;
 	}
 	list->first = NULL;
 	list->last  = NULL;
@@ -14,7 +14,7 @@ string_proc_node* string_proc_node_create(uint8_t type, char* hash){
 	string_proc_node *node = malloc(sizeof(string_proc_node));
 	if (!node) {
 		// no se hizo el malloc
-		exit(EXIT_FAILURE);
+		return NULL;
 	}
 	node->next      = NULL;
 	node->previous  = NULL;
@@ -24,8 +24,11 @@ string_proc_node* string_proc_node_create(uint8_t type, char* hash){
 }
 
 void string_proc_list_add_node(string_proc_list* list, uint8_t type, char* hash){
+	if (!list) return;
 	string_proc_node* new_node = string_proc_node_create(type, hash);
-	// si lista vacia es el primer y ult
+	if (!new_node) {
+		return;
+	}
 	if (list->first == NULL) {
 		list->first = new_node;
 		list->last  = new_node;

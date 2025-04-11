@@ -3,7 +3,7 @@
 string_proc_list* string_proc_list_create(void){
 	string_proc_list *list = malloc(sizeof(string_proc_list));
 	if (!list) {
-		return;
+		return NULL;
 	}
 	list->first = NULL;
 	list->last  = NULL;
@@ -14,7 +14,7 @@ string_proc_node* string_proc_node_create(uint8_t type, char* hash){
 	string_proc_node *node = malloc(sizeof(string_proc_node));
 	if (!node) {
 		// no se hizo el malloc
-		return;
+		return NULL;
 	}
 	node->next      = NULL;
 	node->previous  = NULL;

@@ -35,17 +35,19 @@ void string_proc_list_add_node(string_proc_list* list, uint8_t type, char* hash)
 		list->last->next   = new_node;
 		list->last        = new_node;
 	}
-	return; // quizas omitir
 }
 
 char* string_proc_list_concat(string_proc_list* list, uint8_t type , char* hash){
 	//Genera un nuevo hash concatenando el pasado por parámetro con todos los hashes 
 	//de los nodos de la lista cuyos tipos coinciden con el pasado por parámetro
 	// y devuelve el nuevo hash.
-	char* new_hash = NULL;
-	if (list->first == NULL || list->last == NULL) {
-		return hash;
+	
+	if (list == NULL || list->first == NULL) {
+		char* copy = malloc(strlen(hash) + 1);
+		if (copy) strcpy(copy, hash);
+		return copy;
 	}
+	char* new_hash = NULL;
 	//string_proc_node* current_node = list->first;
 
 	for (string_proc_node* current_node = list->first; current_node != NULL; current_node = current_node->next) {

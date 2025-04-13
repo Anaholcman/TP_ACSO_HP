@@ -34,7 +34,7 @@ string_proc_list_create_asm:
 
 string_proc_node_create_asm:
     movzx rdx, dil ; guardo el type
-    mov rcx, rsi    ; guardo el puntero hash en rcx
+    mov r10, rsi    ; guardo el puntero hash en rcx
 
     mov rdi, 32    ; 2 punteros = 16, char = 8, type = 1 y padding = 7
     call malloc
@@ -94,65 +94,89 @@ string_proc_list_add_node_asm:
 
 string_proc_list_concat_asm:
 
-        ; Entradas:
-    ; rdi = list
-    ; sil = type (uint8_t)
-    ; rdx = hash
+    mov r8, rdi      ; r8 ← list
+    movzx r9d, sil   ; r9d ← type (extendido a 32 bits)
+    mov r10, rdx     ; r10 ← hash
 
-    ; === Guardar parámetros ===
-    mov r8, rdi        ; r8 = list
-    movzx r9d, sil     ; r9d = type (zero-extend)
-    mov r10, rdx       ; r10 = hash
-
-    ; === if (list == NULL || list->first == NULL) ===
+    ; ==== if (list == NULL || list->first == NULL) ====
     test r8, r8
-    je .copy_only_hash
-    mov rax, [r8]      ; rax = list->first
+    je .copy_and_return
+
+    mov rax, [r8]      ; list->first
     test rax, rax
-    je .copy_only_hash
+    je .copy_and_return
 
-    ; === new_hash = str_concat("", hash) ===
-    mov rdi, empty_string
-    mov rsi, r10
-    call str_concat
-    mov r11, rax       ; r11 = new_hash
+    ; ==== Copiar el hash inicial en new_hash ====
+    mov rdi, r10       ; strlen(hash)
+    call strlen
+    inc rax            ; +1 para el '\0'
+    mov rdi, rax
+    call malloc
+    test rax, rax
+    je .return_null
 
-    ; === Bucle: current = list->first ===
-    mov r12, [r8]      ; r12 = current
+    ; Copiar hash original
+    mov rsi, r10       ; src
+    mov rdi, rax       ; dest
+    call strcpy
+
+    ; r12 ← new_hash
+    mov r12, rax
+
+    ; ==== current = list->first ====
+    mov r13, [r8]      ; r13 ← current_node
 
 .loop:
-    test r12, r12
-    je .done
+    test r13, r13
+    je .done           ; fin del while
 
-    ; Comparar current->type con type
-    movzx eax, byte [r12 + 16]  ; current->type → eax
-    cmp eax, r9d
-    jne .next_node
+    ; Comparar current_node->type con type
+    movzx eax, byte [r13 + 16]  ; current->type (offset 16)
+    cmp al, r9b
+    jne .next
 
-    ; temp = str_concat(new_hash, current->hash)
-    mov rdi, r11             ; new_hash
-    mov rsi, [r12 + 24]      ; current->hash
+    ; Si coincide → concatenar
+    mov rdi, r12           ; str_concat(new_hash,
+    mov rsi, [r13 + 24]    ; current->hash (offset 24)
     call str_concat
+    test rax, rax
+    je .return_null
 
-    ; free(new_hash), new_hash = temp
-    mov rdi, r11
+    ; liberar old new_hash
+    mov rdi, r12
     call free
-    mov r11, rax             ; new_hash = temp
 
-.next_node:
-    mov r12, [r12]           ; current = current->next
+    ; actualizar new_hash
+    mov r12, rax
+
+.next:
+    ; avanzar: current = current->next
+    mov r13, [r13]     ; current = current->next
     jmp .loop
 
 .done:
-    mov rax, r11             ; return new_hash
+    ; retorno: r12 = new_hash
+    mov rax, r12
     ret
 
-.copy_only_hash:
-    ; str_concat("", hash)
-    mov rdi, empty_string
+.copy_and_return:
+    ; strlen(hash)
+    mov rdi, r10
+    call strlen
+    inc rax            ; +1 para '\0'
+
+    ; malloc(strlen + 1)
+    mov rdi, rax
+    call malloc
+    test rax, rax
+    je .return_null
+
+    ; strcpy(dest, hash)
     mov rsi, r10
-    call str_concat
+    mov rdi, rax
+    call strcpy
     ret
 
-section .data
-empty_string: db 0
+.return_null:
+    xor rax, rax
+    ret

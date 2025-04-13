@@ -45,7 +45,7 @@ string_proc_node_create_asm:
     mov qword [rax], 0       ; sig en null
     mov qword [rax + 8], 0   ; anterior en null
     mov byte [rax + 16], dl ;
-    mov qword [rax + 24], rcx
+    mov qword [rax + 24], r10 ; puntero a hash
     ret
 
 .return_null:

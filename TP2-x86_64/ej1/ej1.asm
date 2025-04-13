@@ -84,8 +84,10 @@ string_proc_list_add_node_asm:
 
 .not_empty:
     mov rax, [r8 + 8]     ; rax ← list->last
+    test rax, rax
+    je .return
+    
     mov [r11 + 8], rax    ; new_node->previous = list->last
-
     mov [rax], r11
     mov [r8+8], r11
 
@@ -94,13 +96,14 @@ string_proc_list_add_node_asm:
 
 string_proc_list_concat_asm:
 
-   mov r8, rdi        ; r8 = list
+    mov r8, rdi        ; r8 = list
     movzx r9d, sil     ; r9d = type (zero-extend)
     mov r10, rdx       ; r10 = hash
 
     ; === if (list == NULL || list->first == NULL) ===
     test r8, r8
     je .copy_only_hash
+    
     mov rax, [r8]      ; rax = list->first
     test rax, rax
     je .copy_only_hash
@@ -132,7 +135,7 @@ string_proc_list_concat_asm:
     ; free(new_hash), new_hash = temp
     mov rdi, r11
     call free
-    
+
     mov r11, r13             ; new_hash = temp
 
 .next_node:

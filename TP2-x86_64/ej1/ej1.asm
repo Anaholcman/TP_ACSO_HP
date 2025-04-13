@@ -127,11 +127,13 @@ string_proc_list_concat_asm:
     mov rdi, r11             ; new_hash
     mov rsi, [r12 + 24]      ; current->hash
     call str_concat
+    mov r13, rax             ; temp = str_concat(new_hash, current->hash)
 
     ; free(new_hash), new_hash = temp
     mov rdi, r11
     call free
-    mov r11, rax             ; new_hash = temp
+    
+    mov r11, r13             ; new_hash = temp
 
 .next_node:
     mov r12, [r12]           ; current = current->next

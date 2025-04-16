@@ -58,7 +58,7 @@ string_proc_list_add_node_asm:
     ; rdx = puntero a cadena (hash)
 
     test rdi, rdi              ; si list == NULL → return
-    je .return
+    je .return_add_node
  ; ss
     ; === Guardar argumentos para crear nodo ===
     ; dil ← type, rsi ← hash
@@ -68,25 +68,25 @@ string_proc_list_add_node_asm:
     mov r11, rax               ; r11 ← puntero al nuevo nodo
 
     test r11, r11              ; si no se creó el nodo → return
-    je .return
+    je .return_add_node
 
     ; === Verificar si la lista está vacía ===
     mov rax, [rdi]             ; rax ← list->first
     test rax, rax
-    jne .not_empty
+    jne .not_empty_list
 
     ; === Caso lista vacía ===
     mov [rdi], r11             ; list->first = new_node
     mov [rdi + 8], r11         ; list->last  = new_node
     ret
 
-.not_empty:
+.not_empty_list:
     mov rax, [rdi + 8]         ; rax ← list->last
     mov [r11 + 8], rax         ; new_node->previous = list->last
     mov [rax], r11             ; list->last->next = new_node
     mov [rdi + 8], r11         ; list->last = new_node
 
-.return:
+.return_add_node:
     ret
 
 

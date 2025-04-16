@@ -33,8 +33,8 @@ string_proc_list_create_asm:
     ret                      ; devuelve NULL
 
 string_proc_node_create_asm:
-    mov rdx, rsi          ; rdx = hash
-    movzx ecx, dil        ; ecx = type
+    mov rdx, rsi            ; rdx ← hash
+    movzx ecx, dil          ; ecx ← type
 
     mov rdi, 32
     call malloc
@@ -42,16 +42,16 @@ string_proc_node_create_asm:
     je .return_null
 
     xor r8, r8
-    mov [rax], r8           ; sigueinte
+    mov [rax], r8           ; next
     mov [rax + 8], r8       ; prev
     mov byte [rax + 16], cl ; type
-    ; padding 17-23 se deja en 0 por limpieza previa
     mov qword [rax + 24], rdx ; hash
+
     ret
 
 .return_null:
-    mov rax, 0               ; rax ← NULL
-    ret                      ;
+    xor rax, rax
+    ret                         
 
 string_proc_list_add_node_asm:
     ; rdi = puntero a lista

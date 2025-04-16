@@ -33,19 +33,18 @@ string_proc_list_create_asm:
     ret                      ; devuelve NULL
 
 string_proc_node_create_asm:
-    movzx rdx, dil ; guardo el type
-    mov r10, rsi    ; guardo el puntero hash en rcx
+    mov rdx, rsi          ; rdx = hash
+    movzx ecx, dil        ; ecx = type
 
-    mov rdi, 32    ; 2 punteros = 16, char = 8, type = 1 y padding = 7
+    mov rdi, 32
     call malloc
-
     test rax, rax
     je .return_null
 
-    mov qword [rax], 0       ; sig en null
-    mov qword [rax + 8], 0   ; anterior en null
-    mov byte [rax + 16], dl ;
-    mov qword [rax + 24], r10 ; puntero a hash
+    mov qword [rax], 0
+    mov qword [rax + 8], 0
+    mov byte [rax + 16], cl
+    mov qword [rax + 24], rdx
     ret
 
 .return_null:
@@ -53,33 +52,40 @@ string_proc_node_create_asm:
     ret                      ;
 
 string_proc_list_add_node_asm:
-    ; rdi =puntero a lista, sil = type(uint_8), rdx = puntero a cadena
-    test rdi, rdi
+    ; rdi = puntero a lista
+    ; sil = type (uint8_t)
+    ; rdx = puntero a cadena (hash)
+
+    test rdi, rdi              ; si list == NULL → return
     je .return
 
-    ; copio los punteros y el type pra no perderlo con el malloc
-    mov r8, rdi       
-    movzx r9d, sil     
-    mov r10, rdx       
-
-    ;-- creo nodo
-    mov dil, r9b
-    mov rsi, r10
+    ; === Guardar argumentos para crear nodo ===
+    ; dil ← type, rsi ← hash
+    mov dil, sil               ; copiar el type (sil → dil)
+    mov rsi, rdx               ; copiar hash (rdx → rsi)
     call string_proc_node_create_asm
-    mov r11, rax
+    mov r11, rax               ; r11 ← puntero al nuevo nodo
 
-    ;-- si no se crea
-    test r11, r11
+    test r11, r11              ; si no se creó el nodo → return
     je .return
 
-    ; if list->first == NULL
-    mov rax, [r8]
+    ; === Verificar si la lista está vacía ===
+    mov rax, [rdi]             ; rax ← list->first
     test rax, rax
     jne .not_empty
 
-    ; caso lista vacia
-    mov [r8], r11
-    mov [r8 + 8], r11
+    ; === Caso lista vacía ===
+    mov [rdi], r11             ; list->first = new_node
+    mov [rdi + 8], r11         ; list->last  = new_node
+    ret
+
+.not_empty:
+    mov rax, [rdi + 8]         ; rax ← list->last
+    mov [r11 + 8], rax         ; new_node->previous = list->last
+    mov [rax], r11             ; list->last->next = new_node
+    mov [rdi + 8], r11         ; list->last = new_node
+
+.return:
     ret
 
 .not_empty:

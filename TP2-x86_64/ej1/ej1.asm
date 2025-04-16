@@ -42,8 +42,8 @@ string_proc_node_create_asm:
     je .return_null
 
     xor r8, r8
-    mov [rax], r8           ; next
-    mov [rax + 8], r8       ; previous
+    mov [rax], r8           ; sigueinte
+    mov [rax + 8], r8       ; prev
     mov byte [rax + 16], cl ; type
     ; padding 17-23 se deja en 0 por limpieza previa
     mov qword [rax + 24], rdx ; hash
@@ -90,17 +90,6 @@ string_proc_list_add_node_asm:
 .return:
     ret
 
-.not_empty:
-    mov rax, [r8 + 8]     ; rax ← list->last
-    test rax, rax
-    je .return
-    
-    mov [r11 + 8], rax    ; new_node->previous = list->last
-    mov [rax], r11
-    mov [r8+8], r11
-
-.return:
-    ret
 
 string_proc_list_concat_asm:
 

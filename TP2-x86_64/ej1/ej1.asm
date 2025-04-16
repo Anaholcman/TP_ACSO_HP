@@ -28,7 +28,7 @@ string_proc_list_create_asm:
     mov qword [rax + 8], 0
     ret
 
-return_null_list:
+return_null_list_create:
     xor rax, rax
     ret                     ; devuelve NULL
 
@@ -39,7 +39,7 @@ string_proc_node_create_asm:
     mov rdi, 32
     call malloc
     test rax, rax
-    je return_null_node
+    je return_null_node_create
 
     xor r8, r8
     mov [rax], r8
@@ -48,7 +48,7 @@ string_proc_node_create_asm:
     mov [rax + 24], rdx
     ret
 
-return_null_node:
+return_null_node_create:
     xor rax, rax
     ret                  
 
@@ -92,62 +92,53 @@ string_proc_list_add_node_asm:
 
 string_proc_list_concat_asm:
 
-    mov r8, rdi        ; r8 = list
-    mov r9d, esi     ; r9d = type (zero-extend)
-    mov r10, rdx       ; r10 = hash
+    mov r8, rdi          ; list
+    mov r9d, esi         ; type
+    mov r10, rdx         ; hash inicial
 
-    ; === if (list == NULL || list->first == NULL) ===
     test r8, r8
     je .copy_only_hash
-    
-    mov rax, [r8]      ; rax = list->first
+
+    mov rax, [r8]
     test rax, rax
     je .copy_only_hash
 
-    ; === new_hash = str_concat("", hash) ===
+    ; new_hash = str_concat("", hash)
     mov rdi, empty_string
     mov rsi, r10
     call str_concat
-    mov r11, rax       ; r11 = new_hash
+    mov r11, rax          ; new_hash
 
-    ; === Bucle: current = list->first ===
-    mov r12, [r8]      ; r12 = current
+    mov r12, [r8]         ; current
 
 .loop:
     test r12, r12
     je .done
 
-    ; Comparar current->type con type
-    movzx eax, byte [r12 + 16]  ; current->type → eax
+    movzx eax, byte [r12 + 16]   ; current->type
     cmp eax, r9d
     jne .next_node
 
-    ; temp = str_concat(new_hash, current->hash)
-    mov rdi, r11             ; new_hash
-    mov rsi, [r12 + 24]      ; current->hash
+    mov rdi, r11
+    mov rsi, [r12 + 24]
     call str_concat
-    mov r13, rax             ; temp = str_concat(new_hash, current->hash)
+    mov r13, rax
 
-    ; free(new_hash), new_hash = temp
     mov rdi, r11
     call free
 
-    mov r11, r13             ; new_hash = temp
+    mov r11, r13
 
 .next_node:
-    mov r12, [r12]           ; current = current->next
+    mov r12, [r12]
     jmp .loop
 
 .done:
-    mov rax, r11             ; return new_hash
+    mov rax, r11
     ret
 
 .copy_only_hash:
-    ; str_concat("", hash)
     mov rdi, empty_string
     mov rsi, r10
     call str_concat
     ret
-
-section .rodata
-empty_string: db 0

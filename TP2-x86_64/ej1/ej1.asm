@@ -19,39 +19,38 @@ extern str_concat
 
 
 string_proc_list_create_asm:
-    mov rdi, 16              ; rdi ← tamaño a pedir: 16 bytes
-    call malloc              ; malloc(16)
-    test rax, rax            ; malloc devolvió NULL?
-    je .return_null          ;  salta a .return_null
+    mov rdi, 16
+    call malloc
+    test rax, rax
+    je return_null_list
 
-    mov qword [rax], 0       ; *(list->first) ← NULL
-    mov qword [rax + 8], 0   ; *(list->last)  ← NULL
-    ret                      ; devuelve puntero (rax)
+    mov qword [rax], 0
+    mov qword [rax + 8], 0
+    ret
 
-.return_null:
-    mov rax, 0               ; rax ← NULL
-    ret                      ; devuelve NULL
+return_null_list:
+    xor rax, rax
+    ret                     ; devuelve NULL
 
 string_proc_node_create_asm:
-    mov rdx, rsi            ; rdx ← hash
-    movzx ecx, dil          ; ecx ← type
+    mov rdx, rsi
+    movzx ecx, dil
 
     mov rdi, 32
     call malloc
     test rax, rax
-    je .return_null
+    je return_null_node
 
     xor r8, r8
-    mov [rax], r8           ; next
-    mov [rax + 8], r8       ; prev
-    mov byte [rax + 16], cl ; type
-    mov qword [rax + 24], rdx ; hash
-
+    mov [rax], r8
+    mov [rax + 8], r8
+    mov byte [rax + 16], cl
+    mov [rax + 24], rdx
     ret
 
-.return_null:
+return_null_node:
     xor rax, rax
-    ret                         
+    ret                  
 
 string_proc_list_add_node_asm:
     ; rdi = puntero a lista
@@ -150,5 +149,5 @@ string_proc_list_concat_asm:
     call str_concat
     ret
 
-section .data
+section .rodata
 empty_string: db 0

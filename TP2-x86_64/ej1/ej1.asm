@@ -41,10 +41,12 @@ string_proc_node_create_asm:
     test rax, rax
     je .return_null
 
-    mov qword [rax], 0
-    mov qword [rax + 8], 0
-    mov byte [rax + 16], cl
-    mov qword [rax + 24], rdx
+    xor r8, r8
+    mov [rax], r8           ; next
+    mov [rax + 8], r8       ; previous
+    mov byte [rax + 16], cl ; type
+    ; padding 17-23 se deja en 0 por limpieza previa
+    mov qword [rax + 24], rdx ; hash
     ret
 
 .return_null:

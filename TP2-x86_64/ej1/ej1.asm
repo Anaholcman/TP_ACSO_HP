@@ -23,7 +23,7 @@ string_proc_list_create_asm:
     mov rdi, 16
     call malloc
     test rax, rax
-    je return_null_list
+    je return_null_list_create
 
     mov qword [rax], 0
     mov qword [rax + 8], 0

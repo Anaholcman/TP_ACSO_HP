@@ -94,7 +94,7 @@ string_proc_list_add_node_asm:
 string_proc_list_concat_asm:
 
     mov r8, rdi        ; r8 = list
-    movzx r9d, sil     ; r9d = type (zero-extend)
+    mov r9d, esi     ; r9d = type (zero-extend)
     mov r10, rdx       ; r10 = hash
 
     ; === if (list == NULL || list->first == NULL) ===

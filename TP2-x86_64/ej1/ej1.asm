@@ -58,7 +58,7 @@ string_proc_list_add_node_asm:
 
     test rdi, rdi              ; si list == NULL → return
     je .return
-
+ ; ss
     ; === Guardar argumentos para crear nodo ===
     ; dil ← type, rsi ← hash
     mov dil, sil               ; copiar el type (sil → dil)

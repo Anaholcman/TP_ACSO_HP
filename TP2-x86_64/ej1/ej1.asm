@@ -113,118 +113,123 @@ string_proc_list_concat_asm:
     movzx r13d, sil       ; r13 ← type
     mov r14, rdx          ; r14 ← hash
 
+    ; Inicializar r15 = NULL para evitar free inválido
+    xor r15, r15
+
     ; if (list == NULL || list->first == NULL)
     test r12, r12
-    jz .dup_hash
+    jz dup_hash
     mov rax, [r12]        ; list->first
     test rax, rax
-    jz .dup_hash
+    jz dup_hash
 
     ; strlen(hash)
     mov rsi, r14
     xor rcx, rcx
-.count_len:
+count_len:
     mov al, byte [rsi + rcx]
     test al, al
-    jz .alloc_hash
+    jz alloc_hash
     inc rcx
-    jmp .count_len
+    jmp count_len
 
-.alloc_hash:
+alloc_hash:
     mov rdi, rcx
     inc rdi              ; +1 para null terminator
     call malloc
     test rax, rax
-    jz .return_null
+    jz return_null
     mov r15, rax         ; new_hash = r15
 
     ; strcpy(new_hash, hash)
     mov rsi, r14
     mov rdi, r15
     xor rcx, rcx
-.copy_hash:
+copy_hash:
     mov al, byte [rsi + rcx]
     mov byte [rdi + rcx], al
     test al, al
-    jz .start_loop
+    jz start_loop
     inc rcx
-    jmp .copy_hash
+    jmp copy_hash
 
-.start_loop:
+start_loop:
     mov rcx, [r12]        ; current_node = list->first
 
-.loop:
+loop:
     test rcx, rcx
-    jz .concat_done
+    jz concat_done
 
     ; if (current_node->type == type)
     movzx eax, byte [rcx + 16]
     cmp eax, r13d
-    jne .next
+    jne next
 
     ; str_concat(new_hash, current_node->hash)
     mov rdi, r15
     mov rsi, [rcx + 24]      ; current_node->hash
     test rsi, rsi            ; NULL check
-    jz .next
+    jz next
     call str_concat
     test rax, rax
-    jz .next
+    jz next
+
+    ; Solo liberar si r15 era válido
     test r15, r15
-    jz .skip_free
+    jz skip_free
     mov rdi, r15
     call free
-    
-.skip_free:
+
+skip_free:
     mov r15, rax             ; new_hash = result
 
-.next:
+next:
     mov rcx, [rcx]           ; current_node = current_node->next
-    jmp .loop
+    jmp loop
 
-.concat_done:
+concat_done:
     mov rax, r15
-    jmp .restore_and_return
+    jmp restore_and_return
 
-.dup_hash:
+dup_hash:
     ; strlen(hash)
     mov rsi, r14
     xor rcx, rcx
-.count_dup:
+count_dup:
     mov al, byte [rsi + rcx]
     test al, al
-    jz .alloc_dup
+    jz alloc_dup
     inc rcx
-    jmp .count_dup
+    jmp count_dup
 
-.alloc_dup:
+alloc_dup:
     mov rdi, rcx
     inc rdi
     call malloc
     test rax, rax
-    jz .return_null
+    jz return_null
     mov rbx, rax
 
     ; strcpy(copy, hash)
     mov rsi, r14
     mov rdi, rbx
     xor rcx, rcx
-.copy_dup:
+copy_dup:
     mov al, byte [rsi + rcx]
     mov byte [rdi + rcx], al
     test al, al
-    jz .return_copy
+    jz return_copy
     inc rcx
-    jmp .copy_dup
+    jmp copy_dup
 
-.return_copy:
+return_copy:
     mov rax, rbx
-    jmp .restore_and_return
+    jmp restore_and_return
 
-.return_null:
+return_null:
     xor rax, rax
 
-.restore_and_return:
+restore_and_return:
     pop rbx
     pop r15
     pop r14

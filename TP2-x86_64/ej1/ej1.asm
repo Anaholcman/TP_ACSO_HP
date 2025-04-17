@@ -38,54 +38,64 @@ string_proc_node_create_asm:
     test rsi, rsi
     je return_null_node_create
 
-    mov rdx, rsi             
-    movzx ecx, dil     
+    ; Guardar parámetros: rdi = tipo, rsi = hash
+    movzx ecx, dil         ; ECX = type (1 byte)
+    mov rdx, rsi           ; RDX = puntero al string original
 
-    xor rcx, rcx   
-  
-    .calc_len:
-    mov al, byte [rdx + rcx]
-    test al, al
-    jz .len_ok
-    inc rcx
-    jmp .calc_len
-
-.len_ok:
-    inc rcx                  ; +1 para '\0'
-    mov rdi, rcx
-    call malloc
-    test rax, rax
-    je return_null_node_create
-    mov r9, rax              ; r9 = copia malloc'd
-
-    
-    xor rcx, rcx
-.copy_str:
-    mov al, byte [rdx + rcx]
-    mov byte [r9 + rcx], al
-    test al, al
-    jz .string_copied
-    inc rcx
-    jmp .copy_str
-
-.string_copied:
-    ; r9 contiene el puntero al string copiado
-
-    ; Crear nodo (malloc de 32 bytes)
+    ; Crear nodo
     mov rdi, 32
     call malloc
     test rax, rax
     je return_null_node_create
+    mov r8, rax            ; r8 = puntero al nodo
 
-    xor r8, r8
-    mov [rax], r8            ; next = NULL
-    mov [rax + 8], r8        ; prev = NULL
-    mov byte [rax + 16], cl  ; type
-    mov [rax + 24], r9       ; hash = puntero a string copiado
+    ; Inicializar next y prev
+    xor r9, r9
+    mov [r8], r9           ; nodo->next = NULL
+    mov [r8 + 8], r9       ; nodo->prev = NULL
+    mov byte [r8 + 16], cl ; nodo->type = type
 
+    ; Calcular longitud del hash
+    xor rcx, rcx
+.calc_len:
+    mov al, byte [rdx + rcx]
+    test al, al
+    jz .alloc_hash
+    inc rcx
+    jmp .calc_len
+
+.alloc_hash:
+    inc rcx               ; +1 para '\0'
+    mov rdi, rcx
+    call malloc
+    test rax, rax
+    je .free_and_fail     ; si malloc falla, liberamos el nodo
+
+    ; Copiar string
+    mov rsi, rdx          ; rsi = original
+    mov rdi, rax          ; rdi = destino
+    mov r10, rax          ; guardar puntero copiado para el nodo
+    xor rcx, rcx
+.copy_hash:
+    mov al, byte [rsi + rcx]
+    mov byte [rdi + rcx], al
+    test al, al
+    jz .store_and_return
+    inc rcx
+    jmp .copy_hash
+
+.store_and_return:
+    mov [r8 + 24], r10    ; nodo->hash = copia
+    mov rax, r8           ; devolver el nodo
     ret
 
-return_null_node_create:
+.free_and_fail:
+    mov rdi, r8           ; liberar nodo
+    call free
+    xor rax, rax
+    ret
+
+.return_null_node_create:
     xor rax, rax
     ret
 

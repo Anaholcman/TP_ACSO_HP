@@ -34,66 +34,41 @@ return_null_list_create:
     xor rax, rax
     ret                     
 
+; string_proc_node_create_asm corregido
 string_proc_node_create_asm:
-    test rsi, rsi
-    je return_null_node_create
+    push rbp
+    mov rbp, rsp
+    push rbx
+    push r12
 
-    mov rdx, rsi             
-    movzx ecx, dil       
-  
-    mov rdi, 32              
+    test rsi, rsi             ; Verificar si hash es NULL
+    je .return_null
+
+    mov rbx, rdi              ; Preservar type (primer parámetro)
+    mov r12, rsi              ; Preservar hash (segundo parámetro)
+
+    mov rdi, 32               ; Tamaño del nodo
     call malloc
     test rax, rax
-    je return_null_node_create
+    je .return_null
 
-    xor r8, r8
-    mov [rax], r8            ; next
-    mov [rax + 8], r8        ; prev
-    mov byte [rax + 16], cl  ; type
-    mov [rax + 24], rdx      ; hash
+    ; Inicializar nodo
+    mov qword [rax], 0        ; next = NULL
+    mov qword [rax + 8], 0    ; prev = NULL
+    mov byte [rax + 16], bl   ; type (usar bl que contiene el byte bajo de rbx)
+    mov [rax + 24], r12       ; hash
 
+    pop r12
+    pop rbx
+    leave
     ret
 
-return_null_node_create:
+.return_null:
+    pop r12
+    pop rbx
+    leave
     xor rax, rax
     ret
-
-
-string_proc_list_add_node_asm:
-    test rdi, rdi
-    je .return_no_push
-
-    push rbx
-    mov rbx, rdi              
-
-    movzx edi, sil
-    mov rsi, rdx
-    call string_proc_node_create_asm
-
-    test rax, rax
-    je .pop_and_return
-
-    ; si lista vacía → first y last apuntan al nuevo nodo
-    cmp qword [rbx], 0
-    jne .not_empty
-
-    mov [rbx], rax            ; list->first = nodo
-    mov [rbx + 8], rax        ; list->last = nodo
-    jmp .pop_and_return
-
-.not_empty:
-    mov rcx, [rbx + 8]        ; rcx = last
-    mov [rax + 8], rcx        ; new->prev = last
-    mov [rcx], rax            ; last->next = new
-    mov [rbx + 8], rax        ; list->last = new
-
-.pop_and_return:
-    pop rbx
-    ret
-.return_no_push:
-    ret
-    
-
 
 string_proc_list_concat_asm:
     push rbp
@@ -103,114 +78,108 @@ string_proc_list_concat_asm:
     push r14
     push r15
     push rbx
-    sub rsp, 8
 
-    mov r12, rdi          ; r12 ← list
-    movzx r13d, sil       ; r13 ← type
-    mov r14, rdx          ; r14 ← hash
+    mov r12, rdi              ; list
+    movzx r13d, sil           ; type (extender a 32 bits con ceros)
+    mov r14, rdx              ; hash inicial
 
-    ; if (list == NULL || list->first == NULL)
+    ; Verificar si list es NULL o está vacía
     test r12, r12
-    jz .dup_hash
-    mov rax, [r12]        ; list->first
+    jz .duplicate_hash
+    mov rax, [r12]            ; list->first
     test rax, rax
-    jz .dup_hash
+    jz .duplicate_hash
 
-    ; strlen(hash)
+    ; Calcular longitud del hash inicial
     mov rdi, r14
     xor rcx, rcx
     dec rcx
-.count_len:
+.strlen_loop:
     inc rcx
     cmp byte [rdi + rcx], 0
-    jne .count_len
+    jne .strlen_loop
 
-    ; alloc new string (len + 1)
-    lea rdi, [rcx + 1]
+    ; Reservar memoria para nuevo string
+    lea rdi, [rcx + 1]        ; longitud + null terminator
     call malloc
     test rax, rax
     jz .return_null
-    mov r15, rax         ; new_hash = r15
+    mov r15, rax              ; nuevo string
 
-    ; strcpy(new_hash, hash)
+    ; Copiar hash inicial al nuevo string
     mov rsi, r14
     mov rdi, r15
-.copy_hash:
+.copy_loop:
     lodsb
     stosb
     test al, al
-    jnz .copy_hash
+    jnz .copy_loop
 
-    ; Iterate through list
-    mov rbx, [r12]        ; current_node = list->first
-
-.loop:
+    ; Iterar sobre la lista
+    mov rbx, [r12]            ; current = list->first
+.concat_loop:
     test rbx, rbx
     jz .concat_done
 
-    ; if (current_node->type == type)
+    ; Verificar type
     movzx eax, byte [rbx + 16]
     cmp eax, r13d
-    jne .next
+    jne .next_node
 
-    ; if (current_node->hash != NULL)
+    ; Verificar que hash no sea NULL
     mov rsi, [rbx + 24]
     test rsi, rsi
-    jz .next
+    jz .next_node
 
-    ; str_concat(new_hash, current_node->hash)
+    ; Concatenar
     mov rdi, r15
     call str_concat
     test rax, rax
-    jz .next
-    mov rdi, r15
-    mov r15, rax          ; new_hash = result
+    jz .next_node
+    mov rdi, r15              ; Liberar string anterior
+    mov r15, rax              ; Nuevo string
     call free
 
-.next:
-    mov rbx, [rbx]        ; current_node = current_node->next
-    jmp .loop
+.next_node:
+    mov rbx, [rbx]            ; current = current->next
+    jmp .concat_loop
 
 .concat_done:
     mov rax, r15
-    jmp .restore_and_return
+    jmp .return
 
-.dup_hash:
-    ; strlen(hash)
+.duplicate_hash:
+    ; Calcular longitud del hash
     mov rdi, r14
     xor rcx, rcx
     dec rcx
-.count_dup:
+.dup_strlen:
     inc rcx
     cmp byte [rdi + rcx], 0
-    jne .count_dup
+    jne .dup_strlen
 
-    ; alloc new string (len + 1)
+    ; Reservar memoria
     lea rdi, [rcx + 1]
     call malloc
     test rax, rax
     jz .return_null
     mov rbx, rax
 
-    ; strcpy(copy, hash)
+    ; Copiar string
     mov rsi, r14
     mov rdi, rbx
-.copy_dup:
+.dup_copy:
     lodsb
     stosb
     test al, al
-    jnz .copy_dup
-    jmp .return_copy
+    jnz .dup_copy
+    mov rax, rbx
+    jmp .return
 
 .return_null:
     xor rax, rax
-    jmp .restore_and_return
 
-.return_copy:
-    mov rax, rbx
-
-.restore_and_return:
-    add rsp, 8
+.return:
     pop rbx
     pop r15
     pop r14

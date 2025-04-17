@@ -77,75 +77,42 @@ string_proc_list_free_asm:
     ret                    
 
 string_proc_node_create_asm:
-    test rsi, rsi          ; Verificar si hash es NULL
-    je return_null_node_create
+    ; Validar que el puntero hash no sea NULL
+    test rsi, rsi
+    je .return_null
 
     push rbx
     push r12
-    push r13
-    
-    mov rbx, rsi           ; rbx = hash original
-    mov r12d, edi          ; r12d = type
 
-    ; Calcular longitud de hash
-    xor rcx, rcx
-.strlen_loop:
-    cmp byte [rbx + rcx], 0
-    je .strlen_done
-    inc rcx
-    jmp .strlen_loop
-.strlen_done:
-    
-    ; Asignar memoria para el string duplicado
-    lea rdi, [rcx + 1]     ; +1 para el byte NULL
+    mov r12d, edi       ; Guardar type en r12d
+    mov rbx, rsi        ; Guardar hash en rbx
+
+    ; Reservar memoria para el nodo (32 bytes)
+    mov rdi, 32
     call malloc
     test rax, rax
-    je .cleanup_and_return_null
-    
-    mov r13, rax           ; r13 = hash duplicado
-    
-    ; Copiar hash original al nuevo
-    mov rdi, r13
-    mov rsi, rbx
-.copy_loop:
-    mov al, byte [rsi]
-    mov byte [rdi], al
-    inc rsi
-    inc rdi
-    test al, al
-    jnz .copy_loop
-    
-    ; Crear nodo
-    mov rdi, 32            ; tamaño del nodo
-    call malloc
-    test rax, rax
-    je .free_hash_and_return_null
-    
-    ; Inicializar campos del nodo
-    mov qword [rax], 0     ; next = NULL
-    mov qword [rax + 8], 0 ; prev = NULL
-    mov byte [rax + 16], r12b ; type
-    mov [rax + 24], r13    ; hash
-    
-    jmp .cleanup_registers
-    
-.free_hash_and_return_null:
-    mov rdi, r13
-    call free
-    
-.cleanup_and_return_null:
-    xor rax, rax
-    
-.cleanup_registers:
-    pop r13
+    je .error_malloc
+
+    ; Inicializar nodo
+    mov qword [rax], 0         ; next = NULL
+    mov qword [rax + 8], 0     ; prev = NULL
+    mov byte [rax + 16], r12b  ; type
+    mov [rax + 24], rbx        ; hash = puntero original (no se duplica)
+
     pop r12
     pop rbx
     ret
 
-return_null_node_create:
+.error_malloc:
+    xor rax, rax
+    pop r12
+    pop rbx
+    ret
+
+.return_null:
     xor rax, rax
     ret
-    
+
 string_proc_list_add_node_asm:
     test rdi, rdi
     je .return_no_push
@@ -319,7 +286,3 @@ restore_and_return:
     ret
 
 
-global string_proc_list_destroy
-
-string_proc_list_destroy:
-    jmp string_proc_list_free_asm

@@ -39,7 +39,7 @@ string_proc_node_create_asm:
 
     mov rdx, rsi             
     movzx ecx, dil           
-    
+
     mov rdi, 32              
     call malloc
     test rax, rax
@@ -65,7 +65,7 @@ string_proc_list_add_node_asm:
     push rbx
     mov rbx, rdi              ; guardar lista
 
-    mov dil, sil
+    movzx edi, sil
     mov rsi, rdx
     call string_proc_node_create_asm
     test rax, rax

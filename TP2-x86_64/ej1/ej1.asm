@@ -57,30 +57,46 @@ string_proc_node_create_asm:
 
     ; calcular strlen(hash)
     xor rcx, rcx
-.calc_len:
+calc_len:
     mov al, byte [rdx + rcx]
     test al, al
-    jz .malloc_hash
+    jz malloc_hash
     inc rcx
-    jmp .calc_len
+    jmp calc_len
 
-.malloc_hash:
+malloc_hash:
     inc rcx
     mov rdi, rcx
     call malloc
     test rax, rax
-    je .return_fail_free_node
+    je return_fail_free_node
     mov rsi, rdx          ; original
     mov rdi, rax          ; destino
     mov r10, rax          ; guardar copia para el nodo
     xor rcx, rcx
-.copy_hash:
+copy_hash:
     mov al, byte [rsi + rcx]
     mov byte [rdi + rcx], al
     test al, al
-    jz .store_and_return
+    jz store_and_return
     inc rcx
-    jmp .copy_hash_
+    jmp copy_hash
+
+store_and_return:
+    mov [r8 + 24], r10    ; nodo->hash = copia
+    mov rax, r8           ; return nodo
+    ret
+
+return_fail_free_node:
+    mov rdi, r8
+    call free
+    xor rax, rax
+    ret
+
+return_null_node_create:
+    xor rax, rax
+    ret
+
 
 
 string_proc_list_add_node_asm:

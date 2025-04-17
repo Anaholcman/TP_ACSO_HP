@@ -61,7 +61,7 @@ string_proc_list_add_node_asm:
     push rbx
     mov rbx, rdi                 
 
-    movz eax, sil 
+    movzx eax, sil 
     mov rcx, rsi 
 
     mov rdi, eax        

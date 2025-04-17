@@ -103,6 +103,7 @@ string_proc_list_concat_asm:
     push r14
     push r15
     push rbx
+    sub rsp, 8
 
     mov r12, rdi          ; r12 ← list
     movzx r13d, sil       ; r13 ← type
@@ -116,18 +117,16 @@ string_proc_list_concat_asm:
     jz .dup_hash
 
     ; strlen(hash)
-    mov rsi, r14
+    mov rdi, r14
     xor rcx, rcx
+    dec rcx
 .count_len:
-    mov al, byte [rsi + rcx]
-    test al, al
-    jz .alloc_hash
     inc rcx
-    jmp .count_len
+    cmp byte [rdi + rcx], 0
+    jne .count_len
 
-.alloc_hash:
-    mov rdi, rcx
-    inc rdi              ; +1 para null terminator
+    ; alloc new string (len + 1)
+    lea rdi, [rcx + 1]
     call malloc
     test rax, rax
     jz .return_null
@@ -136,41 +135,40 @@ string_proc_list_concat_asm:
     ; strcpy(new_hash, hash)
     mov rsi, r14
     mov rdi, r15
-    xor rcx, rcx
 .copy_hash:
-    mov al, byte [rsi + rcx]
-    mov byte [rdi + rcx], al
+    lodsb
+    stosb
     test al, al
-    jz .start_loop
-    inc rcx
-    jmp .copy_hash
+    jnz .copy_hash
 
-.start_loop:
-    mov rcx, [r12]        ; current_node = list->first
+    ; Iterate through list
+    mov rbx, [r12]        ; current_node = list->first
 
 .loop:
-    test rcx, rcx
+    test rbx, rbx
     jz .concat_done
 
     ; if (current_node->type == type)
-    movzx eax, byte [rcx + 16]
+    movzx eax, byte [rbx + 16]
     cmp eax, r13d
     jne .next
 
+    ; if (current_node->hash != NULL)
+    mov rsi, [rbx + 24]
+    test rsi, rsi
+    jz .next
+
     ; str_concat(new_hash, current_node->hash)
     mov rdi, r15
-    mov rsi, [rcx + 24]      ; current_node->hash
-    test rsi, rsi            ; NULL check
-    jz .next
     call str_concat
     test rax, rax
     jz .next
     mov rdi, r15
+    mov r15, rax          ; new_hash = result
     call free
-    mov r15, rax             ; new_hash = result
 
 .next:
-    mov rcx, [rcx]           ; current_node = current_node->next
+    mov rbx, [rbx]        ; current_node = current_node->next
     jmp .loop
 
 .concat_done:
@@ -179,18 +177,16 @@ string_proc_list_concat_asm:
 
 .dup_hash:
     ; strlen(hash)
-    mov rsi, r14
+    mov rdi, r14
     xor rcx, rcx
+    dec rcx
 .count_dup:
-    mov al, byte [rsi + rcx]
-    test al, al
-    jz .alloc_dup
     inc rcx
-    jmp .count_dup
+    cmp byte [rdi + rcx], 0
+    jne .count_dup
 
-.alloc_dup:
-    mov rdi, rcx
-    inc rdi
+    ; alloc new string (len + 1)
+    lea rdi, [rcx + 1]
     call malloc
     test rax, rax
     jz .return_null
@@ -199,23 +195,22 @@ string_proc_list_concat_asm:
     ; strcpy(copy, hash)
     mov rsi, r14
     mov rdi, rbx
-    xor rcx, rcx
 .copy_dup:
-    mov al, byte [rsi + rcx]
-    mov byte [rdi + rcx], al
+    lodsb
+    stosb
     test al, al
-    jz .return_copy
-    inc rcx
-    jmp .copy_dup
-
-.return_copy:
-    mov rax, rbx
-    jmp .restore_and_return
+    jnz .copy_dup
+    jmp .return_copy
 
 .return_null:
     xor rax, rax
+    jmp .restore_and_return
+
+.return_copy:
+    mov rax, rbx
 
 .restore_and_return:
+    add rsp, 8
     pop rbx
     pop r15
     pop r14

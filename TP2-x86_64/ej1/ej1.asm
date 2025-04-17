@@ -38,43 +38,41 @@ string_proc_node_create_asm:
     test rsi, rsi
     je return_null_node_create
 
-    ; Guardar parámetros: rdi = tipo, rsi = hash
-    movzx ecx, dil         ; ECX = type (1 byte)
-    mov rdx, rsi           ; RDX = puntero al string original
+    ; rdi = tipo, rsi = hash
+    movzx ecx, dil         ; ECX = type
+    mov rdx, rsi           ; RDX = hash original
 
-    ; Crear nodo
+    ; malloc del nodo
     mov rdi, 32
     call malloc
     test rax, rax
     je return_null_node_create
     mov r8, rax            ; r8 = puntero al nodo
 
-    ; Inicializar next y prev
+    ; inicializar nodo
     xor r9, r9
-    mov [r8], r9           ; nodo->next = NULL
-    mov [r8 + 8], r9       ; nodo->prev = NULL
-    mov byte [r8 + 16], cl ; nodo->type = type
+    mov [r8], r9           ; next = NULL
+    mov [r8 + 8], r9       ; prev = NULL
+    mov byte [r8 + 16], cl ; type
 
-    ; Calcular longitud del hash
+    ; calcular strlen(hash)
     xor rcx, rcx
 .calc_len:
     mov al, byte [rdx + rcx]
     test al, al
-    jz .alloc_hash
+    jz .malloc_hash
     inc rcx
     jmp .calc_len
 
-.alloc_hash:
-    inc rcx               ; +1 para '\0'
+.malloc_hash:
+    inc rcx
     mov rdi, rcx
     call malloc
     test rax, rax
-    je .free_and_fail     ; si malloc falla, liberamos el nodo
-
-    ; Copiar string
-    mov rsi, rdx          ; rsi = original
-    mov rdi, rax          ; rdi = destino
-    mov r10, rax          ; guardar puntero copiado para el nodo
+    je .return_fail_free_node
+    mov rsi, rdx          ; original
+    mov rdi, rax          ; destino
+    mov r10, rax          ; guardar copia para el nodo
     xor rcx, rcx
 .copy_hash:
     mov al, byte [rsi + rcx]
@@ -82,22 +80,7 @@ string_proc_node_create_asm:
     test al, al
     jz .store_and_return
     inc rcx
-    jmp .copy_hash
-
-.store_and_return:
-    mov [r8 + 24], r10    ; nodo->hash = copia
-    mov rax, r8           ; devolver el nodo
-    ret
-
-.free_and_fail:
-    mov rdi, r8           ; liberar nodo
-    call free
-    xor rax, rax
-    ret
-
-return_null_node_create:
-    xor rax, rax
-    ret
+    jmp .copy_hash_
 
 
 string_proc_list_add_node_asm:

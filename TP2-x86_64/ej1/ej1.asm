@@ -34,47 +34,6 @@ return_null_list_create:
     xor rax, rax
     ret
 
-; New function to free the entire list
-string_proc_list_free_asm:
-    push rbx
-    push r12
-    mov rbx, rdi          ; Save list pointer
-    
-    test rbx, rbx
-    jz .end_free          ; If list is NULL, nothing to free
-    
-    mov r12, [rbx]        ; Get first node
-.node_loop:
-    test r12, r12
-    jz .free_list
-    
-    ; Save next pointer before freeing
-    mov rdi, r12
-    mov r12, [r12]        ; next = current->next
-    
-    ; Free the node's hash string
-    mov rsi, [rdi + 24]   ; Get hash pointer
-    test rsi, rsi
-    jz .free_node
-    push rdi
-    mov rdi, rsi
-    call free
-    pop rdi
-    
-.free_node:
-    ; Free the node itself
-    call free
-    jmp .node_loop
-    
-.free_list:
-    ; Free the list structure
-    mov rdi, rbx
-    call free
-    
-.end_free:
-    pop r12
-    pop rbx
-    ret                    
 
 string_proc_node_create_asm:
     ; Validar que el puntero hash no sea NULL

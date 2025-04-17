@@ -1,11 +1,11 @@
 Ana Carolina Holcman, aholcman@udesa.edu.ar
 Pude bajar el assembly.txt al vs code para pode debuggear y entender mejor qué me pedia cada funcion (eso me facilitó muchisimo)
 
-Fase1: Observé que se cargaba en rsi una dirección de memoria usando lea. 
+Fase 1: Observé que se cargaba en rsi una dirección de memoria usando lea. 
 Luego se llamaba a la funcion strings_not_equal comparando con el input ingresado en rsi. 
 Si ese resultado no daba, explotaba. Entonces busque el contenido rsi con x/s y escribí ese reaultado en mi input.
 
-Fase2: Evalué el codigo de phase_2 y el de misterio. La funcion misterio me indica que tenia que ser un numero negativo.
+Fase 2: Evalué el codigo de phase_2 y el de misterio. La funcion misterio me indica que tenia que ser un numero negativo.
 La phase_2 indicaba que la operacion tenía que ser (num1 xor num2)>>1 = num3.
 Hice un pequeño script en python que probaba combinaciones y obtuve una opción correcta.
 

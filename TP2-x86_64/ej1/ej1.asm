@@ -70,19 +70,16 @@ string_proc_list_add_node_asm:
     push rbx
     mov rbx, rdi              ; rbx ← list
 
-    ; Preparamos argumentos: type (sil), hash (rdx)
-    ; Ya están en los registros correctos, solo llamamos
+    
     call string_proc_node_create_asm
 
     test rax, rax
     je .pop_and_return
 
-    ; si list->first == NULL
+    
     cmp qword [rbx], 0
     jne .not_empty
 
-    ; list->first = new_node
-    ; list->last = new_node
     mov [rbx], rax
     mov [rbx + 8], rax
     jmp .pop_and_return
@@ -128,8 +125,8 @@ string_proc_list_concat_asm:
     jz .dup_hash
 
     ; strlen(hash)
-    mov rsi, r14         ; src
-    xor rcx, rcx         ; counter
+    mov rsi, r14
+    xor rcx, rcx
 .count_len:
     mov al, byte [rsi + rcx]
     test al, al
@@ -139,15 +136,15 @@ string_proc_list_concat_asm:
 
 .alloc_hash:
     mov rdi, rcx
-    inc rdi              ; +1 para el null terminator
+    inc rdi
     call malloc
     test rax, rax
     jz .return_null
-    mov r15, rax         ; r15 ← new_hash
+    mov r15, rax         ; new_hash ← malloc(strlen + 1)
 
     ; strcpy(new_hash, hash)
-    mov rsi, r14         ; src
-    mov rdi, r15         ; dst
+    mov rsi, r14
+    mov rdi, r15
     xor rcx, rcx
 .copy_hash:
     mov al, byte [rsi + rcx]
@@ -158,28 +155,33 @@ string_proc_list_concat_asm:
     jmp .copy_hash
 
 .start_loop:
-    mov rcx, [r12]        ; rcx ← current_node = list->first
+    mov rcx, [r12]       ; current_node ← list->first
 
 .loop:
     test rcx, rcx
     jz .concat_done
 
-    movzx eax, byte [rcx + 16] ; current_node->type
+    movzx eax, byte [rcx + 16]    ; current_node->type
     cmp eax, r13d
     jne .next
 
-    mov rdi, r15                ; rdi ← current new_hash
-    mov rsi, [rcx + 24]         ; rsi ← current_node->hash
-    
+    ; Validar que current_node->hash no sea NULL
+    mov rsi, [rcx + 24]           ; rsi ← current_node->hash
+    test rsi, rsi
+    jz .next
+
+    ; Hacer str_concat(new_hash, current_node->hash)
+    mov rdi, r15                  ; rdi ← new_hash
     call str_concat
     test rax, rax
-    jz .next
+    jz .next                      ; si str_concat falló, no hacemos nada
+
     mov rdi, r15
     call free
-    mov r15, rax                ; new_hash ← temp
+    mov r15, rax                  ; new_hash ← resultado concatenado
 
 .next:
-    mov rcx, [rcx]              ; current_node = current_node->next
+    mov rcx, [rcx]                ; current_node = current_node->next
     jmp .loop
 
 .concat_done:

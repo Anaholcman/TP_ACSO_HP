@@ -173,6 +173,7 @@ string_proc_list_concat_asm:
     test rax, rax
     jz dup_hash
 
+    ; Duplicar el hash inicial
     ; strlen(hash)
     mov rsi, r14
     xor rcx, rcx
@@ -216,33 +217,37 @@ loop:
     jne next
 
     ; str_concat(new_hash, current_node->hash)
-    mov rdi, r15
-    mov rsi, [rcx + 24]      ; current_node->hash
-    test rsi, rsi            ; NULL check
+    mov rdi, r15          ; Primer argumento: hash actual
+    mov rsi, [rcx + 24]   ; Segundo argumento: current_node->hash
+    test rsi, rsi         ; Verificar si el hash del nodo es NULL
     jz next
 
-    call str_concat
-    test rax, rax
-    jz next
+    ; Guardar temporalmente r15 en un registro seguro
+    mov rbx, r15
 
-    ; guardar nuevo string temporalmente
-    mov rbx, rax
+    call str_concat       ; Llamar a str_concat
+    test rax, rax         ; Verificar si devolvió NULL
+    jz next_with_original ; Si es NULL, mantener el original
 
-    ; liberar anterior si es válido
-    test r15, r15
-    jz skip_free
-    mov rdi, r15
+    ; En este punto RAX tiene el nuevo string concatenado
+    ; y RBX tiene el string original que debemos liberar
+    
+    ; Liberar el hash anterior
+    mov rdi, rbx
+    mov r15, rax          ; Guardar el nuevo hash antes de llamar a free
     call free
 
-skip_free:
-    mov r15, rbx             ; new_hash = resultado de str_concat
+    jmp next
+
+next_with_original:
+    mov r15, rbx          ; Restaurar el hash original
 
 next:
-    mov rcx, [rcx]           ; current_node = current_node->next
+    mov rcx, [rcx]        ; current_node = current_node->next
     jmp loop
 
 concat_done:
-    mov rax, r15
+    mov rax, r15          ; Devolver el hash resultante
     jmp restore_and_return
 
 dup_hash:
@@ -262,11 +267,11 @@ alloc_dup:
     call malloc
     test rax, rax
     jz return_null
-    mov rbx, rax
+    mov r15, rax          ; Guardar puntero en r15 también
 
     ; strcpy(copy, hash)
     mov rsi, r14
-    mov rdi, rbx
+    mov rdi, r15
     xor rcx, rcx
 copy_dup:
     mov al, byte [rsi + rcx]
@@ -277,7 +282,7 @@ copy_dup:
     jmp copy_dup
 
 return_copy:
-    mov rax, rbx
+    mov rax, r15          ; Devolver el hash duplicado
     jmp restore_and_return
 
 return_null:

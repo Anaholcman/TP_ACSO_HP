@@ -38,7 +38,10 @@ string_proc_node_create_asm:
     je return_null_node_create
 
     mov rdx, rsi             
-    movzx ecx, dil           
+    movzx ecx, dil       
+
+    cmp ecx, 7
+    ja return_null_node_create    
 
     mov rdi, 32              
     call malloc
@@ -62,8 +65,11 @@ string_proc_list_add_node_asm:
     test rdi, rdi
     je .return
 
+    test rdx, rdx
+    je .return
+
     push rbx
-    mov rbx, rdi              ; guardar lista
+    mov rbx, rdi              
 
     movzx edi, sil
     mov rsi, rdx
@@ -117,6 +123,8 @@ string_proc_list_concat_asm:
     
 .concat_loop:
     movzx eax, byte [rcx+16]
+    cmp eax, 7
+    ja .next_node
     cmp eax, r13d
     jne .next_node
     

@@ -35,35 +35,85 @@ return_null_list_create:
     ret                     
 
 string_proc_node_create_asm:
-    test rsi, rsi
+    test rsi, rsi          ; Verificar si hash es NULL
     je return_null_node_create
 
     movzx ecx, dil         ; ECX = type
-    mov rdx, rsi           ; RDX = puntero al hash
+    mov rdx, rsi           ; RDX = puntero al hash original
 
-    ; Crear nodo
-    mov rdi, 32
+    ; Guardar registros que necesitaremos
+    push rbx
+    push r12
+    push r13
+    
+    mov rbx, rdx           ; rbx = hash original
+    mov r12d, ecx          ; r12d = type
+
+    ; Calcular longitud de hash para asignar memoria
+    xor rcx, rcx           ; contador a 0
+strlen_loop:
+    cmp byte [rbx + rcx], 0
+    je strlen_done
+    inc rcx
+    jmp strlen_loop
+strlen_done:
+    ; rcx contiene la longitud sin el byte NULL
+    
+    ; Asignar memoria para el string duplicado
+    lea rdi, [rcx + 1]     ; +1 para el byte NULL
     call malloc
     test rax, rax
-    je return_null_node_create
-
-    ; Guardar nodo en r8
-    mov r8, rax
-
+    je cleanup_and_return_null
+    
+    ; Guardar puntero al string duplicado
+    mov r13, rax
+    
+    ; Copiar hash original al nuevo
+    mov rdi, r13           ; destino
+    mov rsi, rbx           ; origen
+    xor rcx, rcx           ; contador
+strcpy_loop:
+    mov al, byte [rsi + rcx]
+    mov byte [rdi + rcx], al
+    test al, al
+    jz strcpy_done
+    inc rcx
+    jmp strcpy_loop
+strcpy_done:
+    
+    ; Crear nodo
+    mov rdi, 32            ; tamaño del nodo (16 + 8 + 8)
+    call malloc
+    test rax, rax
+    je free_hash_and_return_null
+    
     ; Inicializar campos
-    xor r9, r9
-    mov [r8], r9           ; next
-    mov [r8 + 8], r9       ; prev
-    mov byte [r8 + 16], cl ; type
-    mov [r8 + 24], rdx     ; hash (sin duplicar)
-
-    mov rax, r8            ; devolver nodo
+    xor rcx, rcx
+    mov [rax], rcx         ; next = NULL
+    mov [rax + 8], rcx     ; prev = NULL
+    mov byte [rax + 16], r12b  ; type
+    mov [rax + 24], r13    ; hash (duplicado)
+    
+    ; Resultado ya está en RAX
+    jmp cleanup_registers
+    
+free_hash_and_return_null:
+    mov rdi, r13           ; liberar hash duplicado
+    call free
+    
+cleanup_and_return_null:
+    xor rax, rax           ; return NULL
+    
+cleanup_registers:
+    pop r13
+    pop r12
+    pop rbx
     ret
 
 return_null_node_create:
     xor rax, rax
     ret
-
+    
 string_proc_list_add_node_asm:
     test rdi, rdi
     je .return_no_push

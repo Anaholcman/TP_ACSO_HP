@@ -1,3 +1,4 @@
+Ana Carolina Holcman, aholcman@udesa.edu.ar
 Pude bajar el assembly.txt al vs code para pode debuggear y entender mejor qué me pedia cada funcion (eso me facilitó muchisimo)
 
 Fase1: Observé que se cargaba en rsi una dirección de memoria usando lea. 

@@ -59,13 +59,13 @@ string_proc_list_add_node_asm:
     je .return_add_node
 
     push rbx
-    mov rbx, rdi                 
+    push r12
+    mov rbx, rdi     
+    mov r12, rsx            
 
     movzx edi, sil 
-    mov rcx, rsi 
-
-    mov rdi, eax        
-    mov rsi, rcx       
+    mov rsi, r12
+     
     call string_proc_node_create_asm
     test rax, rax
     jz .add_node_cleanup
@@ -73,7 +73,6 @@ string_proc_list_add_node_asm:
     cmp qword [rbx], 0         
     jne .not_empty
 
-    ; Empty list case
     mov [rbx], rax             
     mov [rbx + 8], rax         
     jmp .add_node_cleanup
@@ -85,6 +84,7 @@ string_proc_list_add_node_asm:
     mov [rbx + 8], rax         
 
 .add_node_cleanup:
+    pop r12
     pop rbx
 .return_add_node:
     ret

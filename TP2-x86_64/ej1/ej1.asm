@@ -61,7 +61,7 @@ string_proc_list_add_node_asm:
     test rdi, rdi              ; si list == NULL → return
     je .return_add_node
 
-    mov r8, rdi
+    push rdi
 
     ; === Guardar argumentos para crear nodo ===
 
@@ -71,6 +71,7 @@ string_proc_list_add_node_asm:
     call string_proc_node_create_asm
     mov r11, rax               ; r11 ← puntero al nuevo nodo
 
+    pop rdi                   ; recuperar puntero a lista
     test r11, r11              ; si no se creó el nodo → return
     je .return_add_node
 

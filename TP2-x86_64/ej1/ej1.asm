@@ -31,7 +31,7 @@ string_proc_list_create_asm:
 
 return_null_list_create:
     xor rax, rax
-    ret                     ; devuelve NULL
+    ret                     
 
 string_proc_node_create_asm:
     mov rdx, rsi
@@ -54,39 +54,38 @@ return_null_node_create:
     ret                  
 
 string_proc_list_add_node_asm:
-    test rdi, rdi              ; if list == NULL → return
+
+    test rdi, rdi              
     je .return_add_node
 
-    push rdi                   ; save list pointer
-    push rsi                   ; save type
-    push rdx                   ; save hash
+    push rdi                   
+    push rsi                   
+    push rdx                   
 
-    mov dil, sil               ; set type arg
-    mov rsi, rdx               ; set hash arg
+    mov dil, sil               
+    mov rsi, rdx               
     call string_proc_node_create_asm
-    mov r11, rax               ; save new node
+    mov r11, rax               
 
-    pop rdx                    ; restore hash
-    pop rsi                    ; restore type
-    pop rdi                    ; restore list pointer
+    pop rdx                    
+    pop rsi                    
+    pop rdi                    
 
-    test r11, r11              ; if node creation failed
+    test r11, r11              
     je .return_add_node
 
-    ; Check if list is empty
-    cmp qword [rdi], 0         ; list->first == NULL?
+    cmp qword [rdi], 0         
     jne .not_empty_list
 
-    ; Empty list case
-    mov [rdi], r11             ; list->first = new_node
-    mov [rdi + 8], r11         ; list->last = new_node
+    mov [rdi], r11             
+    mov [rdi + 8], r11         
     ret
 
 .not_empty_list:
-    mov rax, [rdi + 8]         ; rax = list->last
-    mov [r11 + 8], rax         ; new_node->prev = list->last
-    mov [rax], r11             ; list->last->next = new_node
-    mov [rdi + 8], r11         ; list->last = new_node
+    mov rax, [rdi + 8]         
+    mov [r11 + 8], rax         
+    mov [rax], r11             
+    mov [rdi + 8], r11         
 
 .return_add_node:
     ret
@@ -97,41 +96,40 @@ string_proc_list_concat_asm:
     push r13
     push r14
 
-    mov r14, rdi               ; save list
-    mov r13d, esi              ; save type
-    mov r12, rdx               ; save initial hash
+    mov r14, rdi               
+    mov r13d, esi              
+    mov r12, rdx               
 
-    ; First concat with empty string
     mov rdi, empty_string
     mov rsi, r12
     call str_concat
     test rax, rax
     jz .concat_failed
-    mov r11, rax               ; new_hash
+    mov r11, rax               
 
-    test r14, r14              ; if list == NULL
+    test r14, r14              
     jz .return_result
-    mov r12, [r14]             ; current = list->first
-    test r12, r12              ; if list->first == NULL
+    mov r12, [r14]             
+    test r12, r12             
     jz .return_result
 
 .loop:
-    movzx eax, byte [r12 + 16] ; current->type
-    cmp eax, r13d              ; compare with target type
+    movzx eax, byte [r12 + 16] 
+    cmp eax, r13d              
     jne .next_node
 
     mov rdi, r11
-    mov rsi, [r12 + 24]        ; current->hash
+    mov rsi, [r12 + 24]        
     call str_concat
     test rax, rax
     jz .concat_failed
 
-    mov rdi, r11               ; free old string
-    mov r11, rax               ; update new_hash
+    mov rdi, r11               
+    mov r11, rax               
     call free
 
 .next_node:
-    mov r12, [r12]             ; current = current->next
+    mov r12, [r12]             
     test r12, r12
     jnz .loop
 
@@ -140,7 +138,7 @@ string_proc_list_concat_asm:
     jmp .cleanup
 
 .concat_failed:
-    xor rax, rax               ; return NULL on failure
+    xor rax, rax               
 
 .cleanup:
     pop r14

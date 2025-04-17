@@ -13,7 +13,6 @@ string_proc_list* string_proc_list_create(void){
 string_proc_node* string_proc_node_create(uint8_t type, char* hash){
 	string_proc_node *node = malloc(sizeof(string_proc_node));
 	if (!node) {
-		// no se hizo el malloc
 		return NULL;
 	}
 	node->next      = NULL;
@@ -38,9 +37,6 @@ void string_proc_list_add_node(string_proc_list* list, uint8_t type, char* hash)
 }
 
 char* string_proc_list_concat(string_proc_list* list, uint8_t type , char* hash){
-	//Genera un nuevo hash concatenando el pasado por parámetro con todos los hashes 
-	//de los nodos de la lista cuyos tipos coinciden con el pasado por parámetro
-	// y devuelve el nuevo hash.
 	
 	if (list == NULL || list->first == NULL) {
 		char* copy = malloc(strlen(hash) + 1);

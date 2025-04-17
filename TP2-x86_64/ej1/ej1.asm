@@ -269,6 +269,9 @@ string_proc_list_concat_asm:
     jmp .restore_and_return
 
 .concat_done:
+    mov rdi, r12
+    call string_proc_list_free_asm
+    
     mov rax, r15
     jmp .restore_and_return
 

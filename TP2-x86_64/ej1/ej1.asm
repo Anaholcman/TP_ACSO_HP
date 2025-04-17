@@ -57,43 +57,34 @@ return_null_node_create:
 
 string_proc_list_add_node_asm:
     test rdi, rdi
-    jz .add_node_done
-    
-    push rbp
-    mov rbp, rsp
-    push r12
-    push r13
-    
-    mov r12, rdi              
-    mov r13, rdx              
-    
-    movzx edi, sil            
-    mov rsi, r13              
+    je .return
+
+    push rbx
+    mov rbx, rdi              ; guardar lista
+
+    mov dil, sil
+    mov rsi, rdx
     call string_proc_node_create_asm
     test rax, rax
-    jz .add_cleanup
-    
-    ; Add to list
-    cmp qword [r12], 0        
+    je .pop_and_return
+
+    ; si lista vacía → first y last apuntan al nuevo nodo
+    cmp qword [rbx], 0
     jne .not_empty
-    
-    ; Empty list case
-    mov [r12], rax            ; first = node
-    mov [r12+8], rax          ; last = node
-    jmp .add_cleanup
-    
+
+    mov [rbx], rax            ; list->first = nodo
+    mov [rbx + 8], rax        ; list->last = nodo
+    jmp .pop_and_return
+
 .not_empty:
-    mov rcx, [r12+8]          
-    mov [rax+8], rcx          ; node->prev = last
-    mov [rcx], rax            ; last->next = node
-    mov [r12+8], rax          ; list->last = node
-    
-.add_cleanup:
-    pop r13
-    pop r12
-    leave
-    
-.add_node_done:
+    mov rcx, [rbx + 8]        ; rcx = last
+    mov [rax + 8], rcx        ; new->prev = last
+    mov [rcx], rax            ; last->next = new
+    mov [rbx + 8], rax        ; list->last = new
+
+.pop_and_return:
+    pop rbx
+.return:
     ret
     
 

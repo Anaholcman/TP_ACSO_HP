@@ -145,32 +145,30 @@ string_proc_node_create_asm:
 return_null_node_create:
     xor rax, rax
     ret
-
+    
 string_proc_list_add_node_asm:
     test rdi, rdi
     je .return_no_push
 
     push rbx
-    mov rbx, rdi              ; Save list pointer
+    mov rbx, rdi              
 
-    movzx edi, sil            ; type
-    mov rsi, rdx              ; hash
+    movzx edi, sil
+    mov rsi, rdx
     call string_proc_node_create_asm
 
     test rax, rax
     je .pop_and_return
 
-    ; Check if list is empty
+    ; si lista vacía → first y last apuntan al nuevo nodo
     cmp qword [rbx], 0
     jne .not_empty
 
-    ; Empty list case
-    mov [rbx], rax            ; first = new node
-    mov [rbx + 8], rax        ; last = new node
+    mov [rbx], rax            ; list->first = nodo
+    mov [rbx + 8], rax        ; list->last = nodo
     jmp .pop_and_return
 
 .not_empty:
-    ; Add to end of list
     mov rcx, [rbx + 8]        ; rcx = last
     mov [rax + 8], rcx        ; new->prev = last
     mov [rcx], rax            ; last->next = new
@@ -179,9 +177,10 @@ string_proc_list_add_node_asm:
 .pop_and_return:
     pop rbx
     ret
-
 .return_no_push:
     ret
+    
+
 
 string_proc_list_concat_asm:
     push rbp
@@ -192,125 +191,125 @@ string_proc_list_concat_asm:
     push r15
     push rbx
 
-    mov r12, rdi          ; r12 = list
-    movzx r13d, sil       ; r13 = type
-    mov r14, rdx          ; r14 = hash
+    mov r12, rdi          ; r12 ← list
+    movzx r13d, sil       ; r13 ← type
+    mov r14, rdx          ; r14 ← hash
 
     ; if (list == NULL || list->first == NULL)
     test r12, r12
-    jz .dup_hash_only
+    jz dup_hash_only
     mov rax, [r12]        ; list->first
     test rax, rax
-    jz .dup_hash_only
+    jz dup_hash_only
 
     ; Duplicate the initial hash
+    ; Calculate length of hash
     mov rdi, r14
     xor rcx, rcx
-.count_len:
+count_len:
     cmp byte [rdi + rcx], 0
-    je .alloc_hash
+    je alloc_hash
     inc rcx
-    jmp .count_len
+    jmp count_len
 
-.alloc_hash:
-    inc rcx
+alloc_hash:
+    inc rcx               ; +1 for null terminator
     mov rdi, rcx
     call malloc
     test rax, rax
-    jz .return_null
-    mov r15, rax         ; r15 = new_hash
+    jz return_null
+    mov r15, rax         ; new_hash = r15
 
-    ; Copy the hash
+    ; Copy hash to new allocation
     mov rsi, r14
     mov rdi, r15
-.copy_hash:
+copy_hash:
     mov al, byte [rsi]
     mov byte [rdi], al
     inc rsi
     inc rdi
     test al, al
-    jnz .copy_hash
+    jnz copy_hash
 
-    ; Iterate through list
+    ; Start iterating through the list
     mov rbx, [r12]       ; current_node = list->first
 
-.concat_loop:
+concat_loop:
     test rbx, rbx
-    jz .concat_done
+    jz concat_done
 
-    ; Check node type
+    ; Check if node type matches
     movzx eax, byte [rbx + 16]
     cmp eax, r13d
-    jne .next_node
+    jne next_node
 
-    ; Prepare for str_concat
-    mov rdi, r15
-    mov rsi, [rbx + 24]
+    ; Prepare arguments for str_concat
+    mov rdi, r15         ; current concatenated string
+    mov rsi, [rbx + 24]  ; node's hash string
     test rsi, rsi
-    jz .next_node
+    jz next_node         ; skip if node's hash is NULL
 
+    ; Call str_concat
     call str_concat
     test rax, rax
-    jz .concat_failed
+    jz concat_failed     ; if str_concat failed
 
-    ; Free old string and update
+    ; Free old string and update pointer
     mov rdi, r15
-    mov r15, rax
+    mov r15, rax         ; update with new concatenated string
     call free
 
-.next_node:
+next_node:
     mov rbx, [rbx]       ; current_node = current_node->next
-    jmp .concat_loop
+    jmp concat_loop
 
-.concat_failed:
+concat_failed:
+    ; Free the string we were building
     mov rdi, r15
     call free
     xor rax, rax
-    jmp .restore_and_return
+    jmp restore_and_return
 
-.concat_done:
-    mov rdi, r12
-    call string_proc_list_free_asm
-    
-    mov rax, r15
-    jmp .restore_and_return
+concat_done:
+    mov rax, r15         ; return the concatenated string
+    jmp restore_and_return
 
-.dup_hash_only:
-    ; Just duplicate the input hash
+dup_hash_only:
+    ; Handle case where list is empty - just duplicate the input hash
     mov rdi, r14
     xor rcx, rcx
-.count_dup:
+count_dup:
     cmp byte [rdi + rcx], 0
-    je .alloc_dup
+    je alloc_dup
     inc rcx
-    jmp .count_dup
+    jmp count_dup
 
-.alloc_dup:
+alloc_dup:
     inc rcx
     mov rdi, rcx
     call malloc
     test rax, rax
-    jz .return_null
+    jz return_null
     mov r15, rax
 
     ; Copy the hash
     mov rsi, r14
     mov rdi, r15
-.copy_dup:
+copy_dup:
     mov al, byte [rsi]
     mov byte [rdi], al
     inc rsi
     inc rdi
     test al, al
-    jnz .copy_dup
+    jnz copy_dup
 
     mov rax, r15
-    jmp .restore_and_return
+    jmp restore_and_return
 
-.return_null:
+return_null:
     xor rax, rax
 
-.restore_and_return:
+restore_and_return:
     pop rbx
     pop r15
     pop r14

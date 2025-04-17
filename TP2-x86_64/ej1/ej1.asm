@@ -101,13 +101,11 @@ string_proc_list_concat_asm:
     mov r13d, esi             
     mov r14, rdx              
     
-    ; Start with empty string + initial hash
     mov rdi, empty_string
     mov rsi, r14
     call str_concat
     mov r15, rax              
     
-    ; Check if list exists and not empty
     test r12, r12
     jz .concat_done
     mov rcx, [r12]            
@@ -115,19 +113,22 @@ string_proc_list_concat_asm:
     jz .concat_done
     
 .concat_loop:
-    ; Check node type
     movzx eax, byte [rcx+16]
     cmp eax, r13d
     jne .next_node
     
-    ; Concat if type matches
     mov rdi, r15
     mov rsi, [rcx+24]         
     test rsi, rsi
     jz .next_node             
     
     call str_concat
-    mov r15, rax              
+    test rax, rax
+    jz .next_node
+    mov rdi, r15
+    call free   
+
+    mov r15, rax     
     
 .next_node:
     mov rcx, [rcx]            ; Move to next node

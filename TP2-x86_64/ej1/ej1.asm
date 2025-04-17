@@ -34,9 +34,12 @@ return_null_list_create:
     ret                     
 
 string_proc_node_create_asm:
-    mov rdx, rsi             ; rdx ← hash
-    movzx ecx, dil           ; ecx ← type (convertido a 32 bits sin signo)
+    test rsi, rsi
+    je return_null_node_create
 
+    mov rdx, rsi             
+    movzx ecx, dil           
+    
     mov rdi, 32              
     call malloc
     test rax, rax

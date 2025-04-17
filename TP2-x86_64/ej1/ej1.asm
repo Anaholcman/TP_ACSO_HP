@@ -38,11 +38,11 @@ string_proc_node_create_asm:
     test rsi, rsi
     je return_null_node_create
 
-    ; calcular largo del string
-    mov rdi, rsi             ; rdi = string original
+    mov r9, rsi            
     xor rcx, rcx
+
 .count:
-    mov al, byte [rdi + rcx]
+    mov al, byte [r9 + rcx]
     test al, al
     jz .alloc_copy
     inc rcx
@@ -56,13 +56,10 @@ string_proc_node_create_asm:
     jz return_null_node_create
     mov r8, rax              ; r8 = copia de string
 
-    ; copiar string
-    mov rsi, rdx             ; string original
-    mov rdi, r8
     xor rcx, rcx
 .copy:
-    mov al, byte [rsi + rcx]
-    mov byte [rdi + rcx], al
+    mov al, byte [r9 + rcx]
+    mov byte [r8 + rcx], al
     test al, al
     jz .continuar
     inc rcx

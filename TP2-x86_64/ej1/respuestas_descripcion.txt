@@ -1,0 +1,20 @@
+Pude bajar el assembly.txt al vs code para pode debuggear y entender mejor qué me pedia cada funcion (eso me facilitó muchisimo)
+
+Fase1: Observé que se cargaba en rsi una dirección de memoria usando lea. 
+Luego se llamaba a la funcion strings_not_equal comparando con el input ingresado en rsi. 
+Si ese resultado no daba, explotaba. Entonces busque el contenido rsi con x/s y escribí ese reaultado en mi input.
+
+Fase2: Evalué el codigo de phase_2 y el de misterio. La funcion misterio me indica que tenia que ser un numero negativo.
+La phase_2 indicaba que la operacion tenía que ser (num1 xor num2)>>1 = num3.
+Hice un pequeño script en python que probaba combinaciones y obtuve una opción correcta.
+
+Fase 3: Descubrí que el input debía contener una palabra y un número; al usar sscanf y ejecutar x/s vi que el formato era "%s %d". 
+El input era validado por una función auxiliar llamada "cuenta", que realiza una búsqueda binaria en un diccionario cargado en memoria (palabras.txt). 
+Puse un breakpoint dentro de cuenta y, usando finish en cada iteración, imprimí el valor de $ebx y accedía a la palabra correspondiente con x/s ((char*)$rsi + $ebx).
+ También usaba print (int)$r8 para seguir el contador de iteraciones. 
+Anets de que se terminara el loop identifique la palabra y el numero de pasos correcto.
+
+Fase 4: Esta fase pedía 2 numeros: un indice de inicio y una suma objetivo. 
+Analizando el array de enteros en memoria con x/16dw sobre la direccion del array 0x4cde60, vi que era un array de 16 enteros. 
+Puse un break en phase_4 y usando next y print, entendi que el recorrido usaba los valores del array como indices durante 14 pasos, terminando en el numero 15.
+ Fui probando (mucho) y ví que empezando en el indice 1 se llegaba a 15 en 14 pasos, y la suma del recorrido era 105. El input era el indice (1) y la suma (105)

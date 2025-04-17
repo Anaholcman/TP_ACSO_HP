@@ -38,66 +38,31 @@ string_proc_node_create_asm:
     test rsi, rsi
     je return_null_node_create
 
-    ; rdi = tipo, rsi = hash
     movzx ecx, dil         ; ECX = type
-    mov rdx, rsi           ; RDX = hash original
+    mov rdx, rsi           ; RDX = puntero al hash
 
-    ; malloc del nodo
+    ; Crear nodo
     mov rdi, 32
     call malloc
     test rax, rax
     je return_null_node_create
-    mov r8, rax            ; r8 = puntero al nodo
 
-    ; inicializar nodo
+    ; Guardar nodo en r8
+    mov r8, rax
+
+    ; Inicializar campos
     xor r9, r9
-    mov [r8], r9           ; next = NULL
-    mov [r8 + 8], r9       ; prev = NULL
+    mov [r8], r9           ; next
+    mov [r8 + 8], r9       ; prev
     mov byte [r8 + 16], cl ; type
+    mov [r8 + 24], rdx     ; hash (sin duplicar)
 
-    ; calcular strlen(hash)
-    xor rcx, rcx
-calc_len:
-    mov al, byte [rdx + rcx]
-    test al, al
-    jz malloc_hash
-    inc rcx
-    jmp calc_len
-
-malloc_hash:
-    inc rcx
-    mov rdi, rcx
-    call malloc
-    test rax, rax
-    je return_fail_free_node
-    mov rsi, rdx          ; original
-    mov rdi, rax          ; destino
-    mov r10, rax          ; guardar copia para el nodo
-    xor rcx, rcx
-copy_hash:
-    mov al, byte [rsi + rcx]
-    mov byte [rdi + rcx], al
-    test al, al
-    jz store_and_return
-    inc rcx
-    jmp copy_hash
-
-store_and_return:
-    mov [r8 + 24], r10    ; nodo->hash = copia
-    mov rax, r8           ; return nodo
-    ret
-
-return_fail_free_node:
-    mov rdi, r8
-    call free
-    xor rax, rax
+    mov rax, r8            ; devolver nodo
     ret
 
 return_null_node_create:
     xor rax, rax
     ret
-
-
 
 string_proc_list_add_node_asm:
     test rdi, rdi

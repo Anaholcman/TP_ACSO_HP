@@ -58,35 +58,31 @@ string_proc_list_add_node_asm:
     test rdi, rdi              
     je .return_add_node
 
-    push rdi                   
-    push rsi                   
-    push rdx                   
+    push rbx
+    mov rbx, rdi                 
 
     mov dil, sil               
     mov rsi, rdx               
     call string_proc_node_create_asm
-    mov r11, rax               
+    test rax, rax
+    jz .add_node_cleanup
 
-    pop rdx                    
-    pop rsi                    
-    pop rdi                    
+    cmp qword [rbx], 0         
+    jne .not_empty
 
-    test r11, r11              
-    je .return_add_node
+    ; Empty list case
+    mov [rbx], rax             
+    mov [rbx + 8], rax         
+    jmp .add_node_cleanup
 
-    cmp qword [rdi], 0         
-    jne .not_empty_list
+.not_empty:
+    mov rcx, [rbx + 8]         
+    mov [rax + 8], rcx         
+    mov [rcx], rax            
+    mov [rbx + 8], rax         
 
-    mov [rdi], r11             
-    mov [rdi + 8], r11         
-    ret
-
-.not_empty_list:
-    mov rax, [rdi + 8]         
-    mov [r11 + 8], rax         
-    mov [rax], r11             
-    mov [rdi + 8], r11         
-
+.add_node_cleanup:
+    pop rbx
 .return_add_node:
     ret
 
@@ -95,52 +91,56 @@ string_proc_list_concat_asm:
     push r12
     push r13
     push r14
+    push r15
 
     mov r14, rdi               
-    mov r13d, esi              
-    mov r12, rdx               
+    mov r15d, esi              
+    mov r13, rdx               
 
     mov rdi, empty_string
-    mov rsi, r12
+    mov rsi, r13
     call str_concat
     test rax, rax
     jz .concat_failed
-    mov r11, rax               
+    mov r12, rax               
 
     test r14, r14              
     jz .return_result
-    mov r12, [r14]             
-    test r12, r12             
+    mov r11, [r14]             
+    test r11, r11             
     jz .return_result
 
 .loop:
-    movzx eax, byte [r12 + 16] 
-    cmp eax, r13d              
+    movzx eax, byte [r11 + 16] 
+    cmp eax, r15d              
     jne .next_node
 
-    mov rdi, r11
-    mov rsi, [r12 + 24]        
+    mov rdi, r12
+    mov rsi, [r11 + 24] 
+    test rsi, rsi
+    jz .next_node     
     call str_concat
     test rax, rax
     jz .concat_failed
 
-    mov rdi, r11               
-    mov r11, rax               
+    mov rdi, r12              
+    mov r12, rax               
     call free
 
 .next_node:
-    mov r12, [r12]             
-    test r12, r12
+    mov r11, [r11]             
+    test r11, r11
     jnz .loop
 
 .return_result:
-    mov rax, r11
+    mov rax, r12
     jmp .cleanup
 
 .concat_failed:
     xor rax, rax               
 
 .cleanup:
+    pop r15
     pop r14
     pop r13
     pop r12

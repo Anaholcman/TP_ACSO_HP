@@ -95,7 +95,7 @@ string_proc_node_create_asm:
     xor rax, rax
     ret
 
-.return_null_node_create:
+return_null_node_create:
     xor rax, rax
     ret
 

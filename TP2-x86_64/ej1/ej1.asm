@@ -320,7 +320,6 @@ restore_and_return:
 
 
 global string_proc_list_destroy
+
 string_proc_list_destroy:
-    ; Esta función es llamada desde C para liberar la lista
-    ; rdi ← puntero a string_proc_list
     jmp string_proc_list_free_asm

@@ -39,18 +39,49 @@ string_proc_node_create_asm:
     je return_null_node_create
 
     mov rdx, rsi             
-    movzx ecx, dil       
+    movzx ecx, dil     
+
+    xor rcx, rcx   
   
-    mov rdi, 32              
+    .calc_len:
+    mov al, byte [rdx + rcx]
+    test al, al
+    jz .len_ok
+    inc rcx
+    jmp .calc_len
+
+.len_ok:
+    inc rcx                  ; +1 para '\0'
+    mov rdi, rcx
+    call malloc
+    test rax, rax
+    je return_null_node_create
+    mov r9, rax              ; r9 = copia malloc'd
+
+    
+    xor rcx, rcx
+.copy_str:
+    mov al, byte [rdx + rcx]
+    mov byte [r9 + rcx], al
+    test al, al
+    jz .string_copied
+    inc rcx
+    jmp .copy_str
+
+.string_copied:
+    ; r9 contiene el puntero al string copiado
+
+    ; Crear nodo (malloc de 32 bytes)
+    mov rdi, 32
     call malloc
     test rax, rax
     je return_null_node_create
 
     xor r8, r8
-    mov [rax], r8            ; next
-    mov [rax + 8], r8        ; prev
+    mov [rax], r8            ; next = NULL
+    mov [rax + 8], r8        ; prev = NULL
     mov byte [rax + 16], cl  ; type
-    mov [rax + 24], rdx      ; hash
+    mov [rax + 24], r9       ; hash = puntero a string copiado
 
     ret
 

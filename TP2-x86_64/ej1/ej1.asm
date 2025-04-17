@@ -34,31 +34,26 @@ return_null_list_create:
     ret                     
 
 string_proc_node_create_asm:
-    push rbp 
-    mov rbp, rsp
-    push r12
+    mov rdx, rsi             ; rdx ← hash
+    movzx ecx, dil           ; ecx ← type (convertido a 32 bits sin signo)
 
-    mov rdi, 32
+    mov rdi, 32              
     call malloc
     test rax, rax
-    je .create_node_failed
+    je return_null_node_create
 
-    mov r12, rax              ; Save node pointer
-    mov qword [r12], 0        ; next = NULL
-    mov qword [r12+8], 0      ; prev = NULL
-    mov byte [r12+16], dil    ; Store type
-    mov [r12+24], rsi  
+    xor r8, r8
+    mov [rax], r8            ; next
+    mov [rax + 8], r8        ; prev
+    mov byte [rax + 16], cl  ; type
+    mov [rax + 24], rdx      ; hash
 
-    mov rax, r12
-    jmp .create_node_done   
-
-.create_node_failed:
-    xor rax, rax              
-
-.create_node_done:
-    pop r12
-    leave
     ret
+
+return_null_node_create:
+    xor rax, rax
+    ret
+
 
 string_proc_list_add_node_asm:
     test rdi, rdi

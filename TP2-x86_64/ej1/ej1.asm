@@ -16,6 +16,7 @@ global string_proc_list_concat_asm
 ; FUNCIONES auxiliares que pueden llegar a necesitar:
 extern malloc
 extern free
+extern str_concat
 
 
 

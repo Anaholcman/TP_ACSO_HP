@@ -37,26 +37,55 @@ string_proc_node_create_asm:
     test rsi, rsi
     je return_null_node_create
 
-    mov rdx, rsi             
-    movzx ecx, dil       
-  
-    mov rdi, 32              
+    ; calcular largo del string
+    mov rdi, rsi             ; rdi = string original
+    xor rcx, rcx
+.count:
+    mov al, byte [rdi + rcx]
+    test al, al
+    jz .alloc_copy
+    inc rcx
+    jmp .count
+
+.alloc_copy:
+    mov rdi, rcx
+    inc rdi                  ; incluir null terminator
     call malloc
     test rax, rax
-    je return_null_node_create
+    jz return_null_node_create
+    mov r8, rax              ; r8 = copia de string
 
-    xor r8, r8
-    mov [rax], r8            ; next
-    mov [rax + 8], r8        ; prev
-    mov byte [rax + 16], cl  ; type
-    mov [rax + 24], rdx      ; hash
+    ; copiar string
+    mov rsi, rdx             ; string original
+    mov rdi, r8
+    xor rcx, rcx
+.copy:
+    mov al, byte [rsi + rcx]
+    mov byte [rdi + rcx], al
+    test al, al
+    jz .continuar
+    inc rcx
+    jmp .copy
+
+.continuar:
+    mov rdi, 32              ; malloc nodo
+    call malloc
+    test rax, rax
+    jz .free_and_return_null
+
+    xor rcx, rcx
+    mov [rax], rcx           ; next
+    mov [rax + 8], rcx       ; prev
+    mov byte [rax + 16], dil ; type
+    mov [rax + 24], r8       ; hash = copia
 
     ret
 
-return_null_node_create:
+.free_and_return_null:
+    mov rdi, r8
+    call free
     xor rax, rax
     ret
-
 
 string_proc_list_add_node_asm:
     test rdi, rdi

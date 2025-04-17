@@ -38,7 +38,7 @@ return_null_list_create:
 string_proc_node_create_asm:
     ; Validar que el puntero hash no sea NULL
     test rsi, rsi
-    je .return_null
+    je .return_null_node_create
 
     push rbx
     push r12
@@ -68,7 +68,7 @@ string_proc_node_create_asm:
     pop rbx
     ret
 
-.return_null:
+.return_null_node_create:
     xor rax, rax
     ret
 
@@ -117,125 +117,84 @@ string_proc_list_concat_asm:
     push r15
     push rbx
 
-    mov r12, rdi          ; r12 ← list
-    movzx r13d, sil       ; r13 ← type
-    mov r14, rdx          ; r14 ← hash
+    mov r12, rdi            ; r12 ← list
+    movzx r13d, sil         ; r13 ← type
+    mov r14, rdx            ; r14 ← hash
 
-    ; if (list == NULL || list->first == NULL)
-    test r12, r12
-    jz dup_hash_only
-    mov rax, [r12]        ; list->first
-    test rax, rax
-    jz dup_hash_only
+    ; Verificar si hash es NULL
+    test r14, r14
+    jz .return_null_concat
 
-    ; Duplicate the initial hash
-    ; Calculate length of hash
+    ; Duplicar string inicial (siempre lo hacemos, sin importar lista)
     mov rdi, r14
-    xor rcx, rcx
-count_len:
-    cmp byte [rdi + rcx], 0
-    je alloc_hash
-    inc rcx
-    jmp count_len
-
-alloc_hash:
-    inc rcx               ; +1 for null terminator
-    mov rdi, rcx
+    call strlen
+    inc rax
+    mov rdi, rax
     call malloc
     test rax, rax
-    jz return_null
-    mov r15, rax         ; new_hash = r15
+    jz .return_null_concat
+    mov r15, rax            ; r15 ← copia
 
-    ; Copy hash to new allocation
+    ; Copiar hash → r15
     mov rsi, r14
     mov rdi, r15
-copy_hash:
-    mov al, byte [rsi]
-    mov byte [rdi], al
-    inc rsi
-    inc rdi
+.copy_hash:
+    lodsb
+    stosb
     test al, al
-    jnz copy_hash
+    jnz .copy_hash
 
-    ; Start iterating through the list
-    mov rbx, [r12]       ; current_node = list->first
-
-concat_loop:
+    ; Si lista o list->first es NULL → saltar iteración
+    test r12, r12
+    jz .done_iter
+    mov rbx, [r12]
     test rbx, rbx
-    jz concat_done
+    jz .done_iter
 
-    ; Check if node type matches
+.concat_loop:
+    test rbx, rbx
+    jz .done_iter
+
+    ; Verificar type
     movzx eax, byte [rbx + 16]
     cmp eax, r13d
-    jne next_node
+    jne .next_node
 
-    ; Prepare arguments for str_concat
-    mov rdi, r15         ; current concatenated string
-    mov rsi, [rbx + 24]  ; node's hash string
+    ; Concatenar si hay hash válido
+    mov rsi, [rbx + 24]
     test rsi, rsi
-    jz next_node         ; skip if node's hash is NULL
+    jz .next_node
 
-    ; Call str_concat
+    mov rdi, r15
     call str_concat
     test rax, rax
-    jz concat_failed     ; if str_concat failed
+    jz .concat_failed
 
-    ; Free old string and update pointer
+    ; Liberar viejo, actualizar puntero
     mov rdi, r15
-    mov r15, rax         ; update with new concatenated string
-    call free
-
-next_node:
-    mov rbx, [rbx]       ; current_node = current_node->next
-    jmp concat_loop
-
-concat_failed:
-    ; Free the string we were building
-    mov rdi, r15
-    call free
-    xor rax, rax
-    jmp restore_and_return
-
-concat_done:
-    mov rax, r15         ; return the concatenated string
-    jmp restore_and_return
-
-dup_hash_only:
-    ; Handle case where list is empty - just duplicate the input hash
-    mov rdi, r14
-    xor rcx, rcx
-count_dup:
-    cmp byte [rdi + rcx], 0
-    je alloc_dup
-    inc rcx
-    jmp count_dup
-
-alloc_dup:
-    inc rcx
-    mov rdi, rcx
-    call malloc
-    test rax, rax
-    jz return_null
     mov r15, rax
+    call free
 
-    ; Copy the hash
-    mov rsi, r14
-    mov rdi, r15
-copy_dup:
-    mov al, byte [rsi]
-    mov byte [rdi], al
-    inc rsi
-    inc rdi
-    test al, al
-    jnz copy_dup
+.next_node:
+    mov rbx, [rbx]
+    jmp .concat_loop
+
+.done_iter:
+    ; Agregar nuevo nodo a la lista
+    mov rdi, r12
+    movzx esi, r13b
+    mov rdx, r15
+    call string_proc_list_add_node_asm
 
     mov rax, r15
-    jmp restore_and_return
+    jmp .restore
 
-return_null:
+.concat_failed:
+    mov rdi, r15
+    call free
     xor rax, rax
 
-restore_and_return:
+.restore:
     pop rbx
     pop r15
     pop r14
@@ -244,4 +203,6 @@ restore_and_return:
     leave
     ret
 
-
+.return_null_concat:
+    xor rax, rax
+    jmp .restore

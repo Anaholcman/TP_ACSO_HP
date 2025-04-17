@@ -34,117 +34,126 @@ return_null_list_create:
     ret                     
 
 string_proc_node_create_asm:
-    mov rdx, rsi
-    movzx ecx, dil
+    push rbp 
+    mov rbp, rsp
+    push r12
 
     mov rdi, 32
     call malloc
     test rax, rax
-    je return_null_node_create
+    je .create_node_failed
 
-    xor r8, r8
-    mov [rax], r8
-    mov [rax + 8], r8
-    mov byte [rax + 16], cl
-    mov [rax + 24], rdx
+    mov r12, rax              ; Save node pointer
+    mov qword [r12], 0        ; next = NULL
+    mov qword [r12+8], 0      ; prev = NULL
+    mov byte [r12+16], dil    ; Store type
+    mov [r12+24], rsi  
+
+    mov rax, r12
+    jmp .create_node_done   
+
+.create_node_failed:
+    xor rax, rax              
+
+.create_node_done:
+    pop r12
+    leave
     ret
-
-return_null_node_create:
-    xor rax, rax
-    ret                  
 
 string_proc_list_add_node_asm:
-
-    test rdi, rdi              
-    je .return_add_node
-
-    push rbx
+    test rdi, rdi
+    jz .add_node_done
+    
+    push rbp
+    mov rbp, rsp
     push r12
-    mov rbx, rdi     
-    mov r12, rdx            
-
-    movzx edi, sil 
-    mov rsi, r12
-     
+    push r13
+    
+    mov r12, rdi              
+    mov r13, rdx              
+    
+    movzx edi, sil            
+    mov rsi, r13              
     call string_proc_node_create_asm
     test rax, rax
-    jz .add_node_cleanup
-
-    cmp qword [rbx], 0         
+    jz .add_cleanup
+    
+    ; Add to list
+    cmp qword [r12], 0        
     jne .not_empty
-
-    mov [rbx], rax             
-    mov [rbx + 8], rax         
-    jmp .add_node_cleanup
-
+    
+    ; Empty list case
+    mov [r12], rax            ; first = node
+    mov [r12+8], rax          ; last = node
+    jmp .add_cleanup
+    
 .not_empty:
-    mov rcx, [rbx + 8]         
-    mov [rax + 8], rcx         
-    mov [rcx], rax            
-    mov [rbx + 8], rax         
-
-.add_node_cleanup:
+    mov rcx, [r12+8]          
+    mov [rax+8], rcx          ; node->prev = last
+    mov [rcx], rax            ; last->next = node
+    mov [r12+8], rax          ; list->last = node
+    
+.add_cleanup:
+    pop r13
     pop r12
-    pop rbx
-.return_add_node:
+    leave
+    
+.add_node_done:
     ret
+    
 
 
 string_proc_list_concat_asm:
+    push rbp
+    mov rbp, rsp
     push r12
     push r13
     push r14
     push r15
-
-    mov r14, rdi               
-    mov r15d, esi              
-    mov r13, rdx               
-
+    
+    mov r12, rdi              
+    mov r13d, esi             
+    mov r14, rdx              
+    
+    ; Start with empty string + initial hash
     mov rdi, empty_string
-    mov rsi, r13
+    mov rsi, r14
     call str_concat
-    test rax, rax
-    jz .concat_failed
-    mov r12, rax               
-
-    test r14, r14              
-    jz .return_result
-    mov r11, [r14]             
-    test r11, r11             
-    jz .return_result
-
-.loop:
-    movzx eax, byte [r11 + 16] 
-    cmp eax, r15d              
+    mov r15, rax              
+    
+    ; Check if list exists and not empty
+    test r12, r12
+    jz .concat_done
+    mov rcx, [r12]            
+    test rcx, rcx
+    jz .concat_done
+    
+.concat_loop:
+    ; Check node type
+    movzx eax, byte [rcx+16]
+    cmp eax, r13d
     jne .next_node
-
-    mov rdi, r12
-    mov rsi, [r11 + 24] 
+    
+    ; Concat if type matches
+    mov rdi, r15
+    mov rsi, [rcx+24]         
     test rsi, rsi
-    jz .next_node     
+    jz .next_node             
+    
     call str_concat
-    test rax, rax
-    jz .concat_failed
-
-    mov rdi, r12              
-    mov r12, rax               
-    call free
-
+    mov r15, rax              
+    
 .next_node:
-    mov r11, [r11]             
-    test r11, r11
-    jnz .loop
-
-.return_result:
-    mov rax, r12
-    jmp .cleanup
-
-.concat_failed:
-    xor rax, rax               
-
-.cleanup:
+    mov rcx, [rcx]            ; Move to next node
+    test rcx, rcx
+    jnz .concat_loop
+    
+.concat_done:
+    mov rax, r15              
+    
     pop r15
     pop r14
     pop r13
     pop r12
+    leave
     ret

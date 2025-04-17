@@ -229,13 +229,9 @@ loop:
     test rax, rax         ; Verificar si devolvió NULL
     jz next_with_original ; Si es NULL, mantener el original
 
-    ; En este punto RAX tiene el nuevo string concatenado
-    ; y RBX tiene el string original que debemos liberar
-    
-    ; Liberar el hash anterior
+    mov r15, rax
     mov rdi, rbx
-    mov r15, rax          ; Guardar el nuevo hash antes de llamar a free
-    call free
+    call free             ; Liberar el hash original
 
     jmp next
 

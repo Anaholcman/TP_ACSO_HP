@@ -74,6 +74,7 @@ string_proc_list_add_node_asm:
     test r11, r11              ; si no se creó el nodo → return
     je .return_add_node
 
+    mov rdi, r8               ; rdi ← puntero a lista
     ; === Verificar si la lista está vacía ===
     mov rax, [rdi]             ; rax ← list->first
     test rax, rax

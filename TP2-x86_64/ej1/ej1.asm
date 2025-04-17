@@ -39,10 +39,7 @@ string_proc_node_create_asm:
 
     mov rdx, rsi             
     movzx ecx, dil       
-
-    cmp ecx, 7
-    ja return_null_node_create    
-
+  
     mov rdi, 32              
     call malloc
     test rax, rax
@@ -63,9 +60,6 @@ return_null_node_create:
 
 string_proc_list_add_node_asm:
     test rdi, rdi
-    je .return
-
-    test rdx, rdx
     je .return
 
     push rbx
@@ -105,50 +99,78 @@ string_proc_list_concat_asm:
     push r13
     push r14
     push r15
-    
-    mov r12, rdi              
-    mov r13d, esi             
-    mov r14, rdx              
-    
-    mov rdi, empty_string
-    mov rsi, r14
-    call str_concat
-    mov r15, rax              
-    
+
+    mov r12, rdi         ; r12 ← list
+    movzx r13d, sil      ; r13 ← type (aseguramos 0-255 sin signo)
+    mov r14, rdx         ; r14 ← hash
+
+    ; if (list == NULL || list->first == NULL)
     test r12, r12
-    jz .concat_done
-    mov rcx, [r12]            
+    jz .dup_hash
+    mov rax, [r12]
+    test rax, rax
+    jz .dup_hash
+
+    ; malloc(strlen(hash) + 1)
+    mov rdi, r14
+    call strlen
+    add rax, 1
+    mov rdi, rax
+    call malloc
+    test rax, rax
+    jz .return_null
+    mov r15, rax          ; r15 ← new_hash
+
+    ; strcpy(new_hash, hash)
+    mov rdi, r15
+    mov rsi, r14
+    call strcpy
+
+    mov rcx, [r12]        ; rcx ← current_node (list->first)
+.loop:
     test rcx, rcx
     jz .concat_done
-    
-.concat_loop:
-    movzx eax, byte [rcx+16]
-    cmp eax, 7
-    ja .next_node
+
+    movzx eax, byte [rcx + 16] ; eax ← current_node->type
     cmp eax, r13d
-    jne .next_node
-    
-    mov rdi, r15
-    mov rsi, [rcx+24]         
-    test rsi, rsi
-    jz .next_node             
-    
+    jne .next
+
+    mov rdi, r15                ; rdi ← current new_hash
+    mov rsi, [rcx + 24]         ; rsi ← current_node->hash
     call str_concat
     test rax, rax
-    jz .next_node
+    jz .next
     mov rdi, r15
-    call free   
+    call free
+    mov r15, rax                ; new_hash ← temp
 
-    mov r15, rax     
-    
-.next_node:
-    mov rcx, [rcx]            ; Move to next node
-    test rcx, rcx
-    jnz .concat_loop
-    
+.next:
+    mov rcx, [rcx]              ; rcx = current_node->next
+    jmp .loop
+
 .concat_done:
-    mov rax, r15              
-    
+    mov rax, r15
+    jmp .restore_and_return
+
+.dup_hash:
+    ; return strdup(hash) → malloc + strcpy
+    mov rdi, r14
+    call strlen
+    add rax, 1
+    mov rdi, rax
+    call malloc
+    test rax, rax
+    jz .return_null
+    mov rdi, rax
+    mov rsi, r14
+    call strcpy
+    mov rax, rdi
+    jmp .restore_and_return
+
+.return_null:
+    xor rax, rax
+
+.restore_and_return:
     pop r15
     pop r14
     pop r13

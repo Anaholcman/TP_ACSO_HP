@@ -178,8 +178,7 @@ string_proc_list_concat_asm:
     mov rsi, r14
     xor rcx, rcx
 count_len:
-    mov al, byte [rsi + rcx]
-    test al, al
+    cmp byte [rsi + rcx], 0   ; Corrección: usar cmp en lugar de mov+test
     jz alloc_hash
     inc rcx
     jmp count_len
@@ -225,18 +224,29 @@ loop:
     ; Guardar temporalmente r15 en un registro seguro
     mov rbx, r15
 
+    ; Guardar current_node antes de llamar a str_concat
+    push rcx              ; IMPORTANTE: Preservar rcx (current_node)
+    
     call str_concat       ; Llamar a str_concat
+    
+    ; Restaurar current_node
+    pop rcx               ; IMPORTANTE: Restaurar rcx (current_node)
+    
     test rax, rax         ; Verificar si devolvió NULL
     jz next_with_original ; Si es NULL, mantener el original
 
-    mov r15, rax
-    mov rdi, rbx
+    ; IMPORTANTE: Primero actualizar r15, luego liberar rbx
+    mov r15, rax          ; Actualizar r15 con el nuevo string
+    
+    push rcx              ; Guardar rcx nuevamente para la llamada a free
+    mov rdi, rbx          ; rbx contiene el hash original a liberar
     call free             ; Liberar el hash original
-
+    pop rcx               ; Restaurar rcx después de free
+    
     jmp next
 
 next_with_original:
-    mov r15, rbx          ; Restaurar el hash original
+    mov r15, rbx          ; Restaurar el hash original si str_concat falló
 
 next:
     mov rcx, [rcx]        ; current_node = current_node->next
@@ -251,8 +261,7 @@ dup_hash:
     mov rsi, r14
     xor rcx, rcx
 count_dup:
-    mov al, byte [rsi + rcx]
-    test al, al
+    cmp byte [rsi + rcx], 0   ; Corrección: usar cmp en lugar de mov+test
     jz alloc_dup
     inc rcx
     jmp count_dup

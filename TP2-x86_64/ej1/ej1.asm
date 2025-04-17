@@ -38,19 +38,23 @@ string_proc_node_create_asm:
     test rsi, rsi
     je return_null_node_create
 
-    mov rdx, rsi             
-    movzx ecx, dil       
-  
-    mov rdi, 32              
+    mov rdx, rsi             ; rdx ← hash
+    movzx ecx, sil           ; ecx ← type (asegura uint8_t correctamente)
+
+    mov rdi, 32
     call malloc
     test rax, rax
     je return_null_node_create
 
     xor r8, r8
-    mov [rax], r8            ; next
-    mov [rax + 8], r8        ; prev
-    mov byte [rax + 16], cl  ; type
-    mov [rax + 24], rdx      ; hash
+    mov [rax], r8            ; node->next = NULL
+    mov [rax + 8], r8        ; node->prev = NULL
+
+    mov rcx, 0
+    mov cl, sil              ; cl ← type
+    mov [rax + 16], rcx      ; limpia padding (17–23) y escribe el type en 16
+
+    mov [rax + 24], rdx      ; node->hash = hash
 
     ret
 
@@ -64,35 +68,43 @@ string_proc_list_add_node_asm:
     je .return_no_push
 
     push rbx
-    mov rbx, rdi              
+    mov rbx, rdi              ; rbx ← list
 
-    movzx edi, sil
-    mov rsi, rdx
+    ; Preparamos argumentos: type (sil), hash (rdx)
+    ; Ya están en los registros correctos, solo llamamos
     call string_proc_node_create_asm
 
     test rax, rax
     je .pop_and_return
 
-    ; si lista vacía → first y last apuntan al nuevo nodo
+    ; si list->first == NULL
     cmp qword [rbx], 0
     jne .not_empty
 
-    mov [rbx], rax            ; list->first = nodo
-    mov [rbx + 8], rax        ; list->last = nodo
+    ; list->first = new_node
+    ; list->last = new_node
+    mov [rbx], rax
+    mov [rbx + 8], rax
     jmp .pop_and_return
 
 .not_empty:
-    mov rcx, [rbx + 8]        ; rcx = last
-    mov [rax + 8], rcx        ; new->prev = last
-    mov [rcx], rax            ; last->next = new
-    mov [rbx + 8], rax        ; list->last = new
+    ; new_node->previous = list->last
+    mov rcx, [rbx + 8]
+    mov [rax + 8], rcx
+
+    ; list->last->next = new_node
+    mov [rcx], rax
+
+    ; list->last = new_node
+    mov [rbx + 8], rax
 
 .pop_and_return:
     pop rbx
     ret
+
 .return_no_push:
     ret
-    
+
 
 
 string_proc_list_concat_asm:

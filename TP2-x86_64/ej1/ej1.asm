@@ -170,8 +170,12 @@ string_proc_list_concat_asm:
     call str_concat
     test rax, rax
     jz .next
+    test r15, r15
+    jz .skip_free
     mov rdi, r15
     call free
+    
+.skip_free:
     mov r15, rax             ; new_hash = result
 
 .next:

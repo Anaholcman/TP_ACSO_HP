@@ -1,3 +1,4 @@
+; /** defines bool y puntero **/
 %define NULL 0
 %define TRUE 1
 %define FALSE 0
@@ -33,61 +34,30 @@ return_null_list_create:
     xor rax, rax
     ret                     
 
-
 string_proc_node_create_asm:
     test rsi, rsi
     je return_null_node_create
 
-    mov r9, rsi            
-    xor rcx, rcx
-
-.count:
-    mov al, byte [r9 + rcx]
-    test al, al
-    jz .alloc_copy
-    inc rcx
-    jmp .count
-
-.alloc_copy:
-    mov rdi, rcx
-    inc rdi                  ; incluir null terminator
+    mov rdx, rsi             
+    movzx ecx, dil       
+  
+    mov rdi, 32              
     call malloc
     test rax, rax
-    jz return_null_node_create
-    mov r8, rax              ; r8 = copia de string
+    je return_null_node_create
 
-    xor rcx, rcx
-.copy:
-    mov al, byte [r9 + rcx]
-    mov byte [r8 + rcx], al
-    test al, al
-    jz .continuar
-    inc rcx
-    jmp .copy
+    xor r8, r8
+    mov [rax], r8            ; next
+    mov [rax + 8], r8        ; prev
+    mov byte [rax + 16], cl  ; type
+    mov [rax + 24], rdx      ; hash
 
-.continuar:
-    mov rdi, 32              ; malloc nodo
-    call malloc
-    test rax, rax
-    jz .free_and_return_null
-
-    xor rcx, rcx
-    mov [rax], rcx           ; next
-    mov [rax + 8], rcx       ; prev
-    mov byte [rax + 16], dil ; type
-    mov [rax + 24], r8       ; hash = copia
-
-    ret
-
-.free_and_return_null:
-    mov rdi, r8
-    call free
-    xor rax, rax
     ret
 
 return_null_node_create:
     xor rax, rax
     ret
+
 
 string_proc_list_add_node_asm:
     test rdi, rdi

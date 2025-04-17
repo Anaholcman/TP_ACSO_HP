@@ -103,20 +103,20 @@ string_proc_list_concat_asm:
     push r15
     push rbx
 
-    mov r12, rdi          ; r12 ← list
-    movzx r13d, sil       ; r13 ← type
-    mov r14, rdx          ; r14 ← hash
+    mov r12, rdi         ; r12 ← list
+    movzx r13d, sil      ; r13 ← type (asegura uint8_t sin signo)
+    mov r14, rdx         ; r14 ← hash (char *)
 
     ; if (list == NULL || list->first == NULL)
     test r12, r12
     jz .dup_hash
-    mov rax, [r12]        ; list->first
+    mov rax, [r12]
     test rax, rax
     jz .dup_hash
 
     ; strlen(hash)
-    mov rsi, r14
-    xor rcx, rcx
+    mov rsi, r14         ; src
+    xor rcx, rcx         ; counter
 .count_len:
     mov al, byte [rsi + rcx]
     test al, al
@@ -126,15 +126,15 @@ string_proc_list_concat_asm:
 
 .alloc_hash:
     mov rdi, rcx
-    inc rdi              ; +1 para null terminator
+    inc rdi              ; +1 para el null terminator
     call malloc
     test rax, rax
     jz .return_null
-    mov r15, rax         ; new_hash = r15
+    mov r15, rax         ; r15 ← new_hash
 
     ; strcpy(new_hash, hash)
-    mov rsi, r14
-    mov rdi, r15
+    mov rsi, r14         ; src
+    mov rdi, r15         ; dst
     xor rcx, rcx
 .copy_hash:
     mov al, byte [rsi + rcx]
@@ -145,31 +145,28 @@ string_proc_list_concat_asm:
     jmp .copy_hash
 
 .start_loop:
-    mov rcx, [r12]        ; current_node = list->first
+    mov rcx, [r12]        ; rcx ← current_node = list->first
 
 .loop:
     test rcx, rcx
     jz .concat_done
 
-    ; if (current_node->type == type)
-    movzx eax, byte [rcx + 16]
+    movzx eax, byte [rcx + 16] ; current_node->type
     cmp eax, r13d
     jne .next
 
-    ; str_concat(new_hash, current_node->hash)
-    mov rdi, r15
-    mov rsi, [rcx + 24]      ; current_node->hash
-    test rsi, rsi            ; NULL check
-    jz .next
+    mov rdi, r15                ; rdi ← current new_hash
+    mov rsi, [rcx + 24]         ; rsi ← current_node->hash
+    
     call str_concat
     test rax, rax
     jz .next
     mov rdi, r15
     call free
-    mov r15, rax             ; new_hash = result
+    mov r15, rax                ; new_hash ← temp
 
 .next:
-    mov rcx, [rcx]           ; current_node = current_node->next
+    mov rcx, [rcx]              ; current_node = current_node->next
     jmp .loop
 
 .concat_done:

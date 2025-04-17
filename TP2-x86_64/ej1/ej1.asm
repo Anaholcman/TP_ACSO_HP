@@ -33,6 +33,7 @@ return_null_list_create:
     xor rax, rax
     ret                     
 
+
 string_proc_node_create_asm:
     test rsi, rsi
     je return_null_node_create
@@ -84,6 +85,10 @@ string_proc_node_create_asm:
 .free_and_return_null:
     mov rdi, r8
     call free
+    xor rax, rax
+    ret
+
+return_null_node_create:
     xor rax, rax
     ret
 

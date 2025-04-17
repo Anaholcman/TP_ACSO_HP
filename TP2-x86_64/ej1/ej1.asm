@@ -170,18 +170,22 @@ loop:
     mov rsi, [rcx + 24]      ; current_node->hash
     test rsi, rsi            ; NULL check
     jz next
+
     call str_concat
     test rax, rax
     jz next
 
-    ; Solo liberar si r15 era válido
+    ; guardar nuevo string temporalmente
+    mov rbx, rax
+
+    ; liberar anterior si es válido
     test r15, r15
     jz skip_free
     mov rdi, r15
     call free
 
 skip_free:
-    mov r15, rax             ; new_hash = result
+    mov r15, rbx             ; new_hash = resultado de str_concat
 
 next:
     mov rcx, [rcx]           ; current_node = current_node->next

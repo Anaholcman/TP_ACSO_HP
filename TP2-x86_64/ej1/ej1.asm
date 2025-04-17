@@ -54,41 +54,37 @@ return_null_node_create:
     ret                  
 
 string_proc_list_add_node_asm:
-    ; rdi = puntero a lista
-    ; sil = type (uint8_t)
-    ; rdx = puntero a cadena (hash)
-
-    test rdi, rdi              ; si list == NULL → return
+    test rdi, rdi              ; if list == NULL → return
     je .return_add_node
 
-    push rdi
+    push rdi                   ; save list pointer
+    push rsi                   ; save type
+    push rdx                   ; save hash
 
-    ; === Guardar argumentos para crear nodo ===
-
-    
-    mov dil, sil               ; copiar el type (sil → dil)
-    mov rsi, rdx               ; copiar hash (rdx → rsi)
+    mov dil, sil               ; set type arg
+    mov rsi, rdx               ; set hash arg
     call string_proc_node_create_asm
-    mov r11, rax               ; r11 ← puntero al nuevo nodo
+    mov r11, rax               ; save new node
 
-    pop rdi                   ; recuperar puntero a lista
-    test r11, r11              ; si no se creó el nodo → return
+    pop rdx                    ; restore hash
+    pop rsi                    ; restore type
+    pop rdi                    ; restore list pointer
+
+    test r11, r11              ; if node creation failed
     je .return_add_node
 
-    mov rdi, r8               ; rdi ← puntero a lista
-    ; === Verificar si la lista está vacía ===
-    mov rax, [rdi]             ; rax ← list->first
-    test rax, rax
+    ; Check if list is empty
+    cmp qword [rdi], 0         ; list->first == NULL?
     jne .not_empty_list
 
-    ; === Caso lista vacía ===
+    ; Empty list case
     mov [rdi], r11             ; list->first = new_node
-    mov [rdi + 8], r11         ; list->last  = new_node
+    mov [rdi + 8], r11         ; list->last = new_node
     ret
 
 .not_empty_list:
-    mov rax, [rdi + 8]         ; rax ← list->last
-    mov [r11 + 8], rax         ; new_node->previous = list->last
+    mov rax, [rdi + 8]         ; rax = list->last
+    mov [r11 + 8], rax         ; new_node->prev = list->last
     mov [rax], r11             ; list->last->next = new_node
     mov [rdi + 8], r11         ; list->last = new_node
 
@@ -97,54 +93,57 @@ string_proc_list_add_node_asm:
 
 
 string_proc_list_concat_asm:
+    push r12
+    push r13
+    push r14
 
-    mov r8, rdi          ; list
-    mov r9d, esi         ; type
-    mov r10, rdx         ; hash inicial
+    mov r14, rdi               ; save list
+    mov r13d, esi              ; save type
+    mov r12, rdx               ; save initial hash
 
-    test r8, r8
-    je .copy_only_hash
-
-    mov rax, [r8]
-    test rax, rax
-    je .copy_only_hash
-
-    ; new_hash = str_concat("", hash)
+    ; First concat with empty string
     mov rdi, empty_string
-    mov rsi, r10
+    mov rsi, r12
     call str_concat
-    mov r11, rax          ; new_hash
+    test rax, rax
+    jz .concat_failed
+    mov r11, rax               ; new_hash
 
-    mov r12, [r8]         ; current
+    test r14, r14              ; if list == NULL
+    jz .return_result
+    mov r12, [r14]             ; current = list->first
+    test r12, r12              ; if list->first == NULL
+    jz .return_result
 
 .loop:
-    test r12, r12
-    je .done
-
-    movzx eax, byte [r12 + 16]   ; current->type
-    cmp eax, r9d
+    movzx eax, byte [r12 + 16] ; current->type
+    cmp eax, r13d              ; compare with target type
     jne .next_node
 
     mov rdi, r11
-    mov rsi, [r12 + 24]
+    mov rsi, [r12 + 24]        ; current->hash
     call str_concat
-    mov r13, rax
+    test rax, rax
+    jz .concat_failed
 
-    mov rdi, r11
+    mov rdi, r11               ; free old string
+    mov r11, rax               ; update new_hash
     call free
 
-    mov r11, r13
-
 .next_node:
-    mov r12, [r12]
-    jmp .loop
+    mov r12, [r12]             ; current = current->next
+    test r12, r12
+    jnz .loop
 
-.done:
+.return_result:
     mov rax, r11
-    ret
+    jmp .cleanup
 
-.copy_only_hash:
-    mov rdi, empty_string
-    mov rsi, r10
-    call str_concat
+.concat_failed:
+    xor rax, rax               ; return NULL on failure
+
+.cleanup:
+    pop r14
+    pop r13
+    pop r12
     ret

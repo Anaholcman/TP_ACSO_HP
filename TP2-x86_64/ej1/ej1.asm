@@ -61,8 +61,11 @@ string_proc_list_add_node_asm:
     push rbx
     mov rbx, rdi                 
 
-    mov dil, sil               
-    mov rsi, rdx               
+    movz eax, sil 
+    mov rcx, rsi 
+
+    mov rdi, eax        
+    mov rsi, rcx       
     call string_proc_node_create_asm
     test rax, rax
     jz .add_node_cleanup

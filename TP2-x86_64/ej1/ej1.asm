@@ -180,14 +180,14 @@ string_proc_list_concat_asm:
     call string_proc_list_add_node_asm
 
     mov rax, r15
-    jmp .restore
+    jmp .restore_list
 
 .concat_failed:
     mov rdi, r15
     call free
     xor rax, rax
 
-.restore:
+.restore_list:
     pop rbx
     pop r15
     pop r14
@@ -198,4 +198,4 @@ string_proc_list_concat_asm:
 
 .return_null_concat:
     xor rax, rax
-    jmp .restore
+    jmp .restore_list

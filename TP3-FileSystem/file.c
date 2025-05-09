@@ -33,6 +33,8 @@ int file_getblock(struct unixfilesystem *fs, int inumber, int blockNum, void *bu
     } else {
         valid_bytes = BLOCK_SIZE;
     }
+    printf("file_getblock: blockNum %d → physical block %d\n", blockNum, block_disc_index);
+
     return valid_bytes;
 }
 

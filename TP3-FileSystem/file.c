@@ -37,7 +37,12 @@ int file_getblock(struct unixfilesystem *fs, int inumber, int blockNum, void *bu
         fprintf(stderr, "DEBUG inumber 1 → blockNum %d, physical block %d\n", blockNum, block_disc_index);
     }
     
-
+    if (inumber == 1) {
+        uint8_t *bytes = (uint8_t *) buf;
+        fprintf(stderr, "DEBUG root: valid_bytes = %d, first 4 bytes: %02x %02x %02x %02x\n",
+            valid_bytes, bytes[0], bytes[1], bytes[2], bytes[3]);
+    }
+    
     return valid_bytes;
 }
 

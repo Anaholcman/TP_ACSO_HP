@@ -37,9 +37,9 @@ int file_getblock(struct unixfilesystem *fs, int inumber, int blockNum, void *bu
         valid_bytes = BLOCK_SIZE;
     }
     
-    if (valid_bytes < BLOCK_SIZE) {
-        memset((char *)buf + valid_bytes, 0, BLOCK_SIZE - valid_bytes);
-    }
+    // if (valid_bytes < BLOCK_SIZE) {
+    //     memset((char *)buf + valid_bytes, 0, BLOCK_SIZE - valid_bytes);
+    // }
     
     return valid_bytes;
 }

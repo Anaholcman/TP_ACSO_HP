@@ -41,6 +41,10 @@ int file_getblock(struct unixfilesystem *fs, int inumber, int blockNum, void *bu
     if (inumber == 1) {
         fprintf(stderr, "DEBUG inumber 1 → blockNum %d, physical block %d\n", blockNum, block_disc_index);
     }
+    if (inumber == 1) {
+        printf("DEBUG getblock: size = %d, blockNum = %d, valid = %d\n", inode_size, blockNum, valid_bytes);
+    }
+    
     
     if (inumber == 1) {
         uint8_t *bytes = (uint8_t *) buf;

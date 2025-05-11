@@ -17,15 +17,13 @@ int file_getblock(struct unixfilesystem *fs, int inumber, int blockNum, void *bu
     int inode_size = inode_getsize(&inode_struct);
     int max_blocks = (inode_size + BLOCK_SIZE-1) / BLOCK_SIZE;
 
-    if (blockNum < 0){
-        return -1;
-    }
-    if (blockNum >= max_blocks){
-        return 0;
-    }
+    if (blockNum < 0) return -1;
+    if (blockNum >= max_blocks) return 0;
 
     int block_disc_index = inode_indexlookup(fs, &inode_struct, blockNum);
     if (block_disc_index < 0) return -1;
+    memset(buf, 0, BLOCK_SIZE);
+    
     if (diskimg_readsector(fs->dfd, block_disc_index, buf)< 0) return -1;
     
     int last_block_bytes = inode_size % BLOCK_SIZE;

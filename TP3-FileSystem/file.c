@@ -20,7 +20,7 @@ int file_getblock(struct unixfilesystem *fs, int inumber, int blockNum, void *bu
     }
 
     int block_disc_index = inode_indexlookup(fs, &inode_struct, blockNum);
-    if (block_disc_index <= 0) return -1;
+    if (block_disc_index < 0) return -1;
     if (diskimg_readsector(fs->dfd, block_disc_index, buf)< 0) return -1;
     
     int last_block_bytes = inode_size % BLOCK_SIZE;

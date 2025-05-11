@@ -22,7 +22,7 @@ int file_getblock(struct unixfilesystem *fs, int inumber, int blockNum, void *bu
 
     int block_disc_index = inode_indexlookup(fs, &inode_struct, blockNum);
     if (block_disc_index < 0) return -1;
-    memset(buf, 0, BLOCK_SIZE);
+    //memset(buf, 0, BLOCK_SIZE);
 
     if (diskimg_readsector(fs->dfd, block_disc_index, buf)< 0) return -1;
     
@@ -36,10 +36,6 @@ int file_getblock(struct unixfilesystem *fs, int inumber, int blockNum, void *bu
     } else {
         valid_bytes = BLOCK_SIZE;
     }
-    
-    // if (valid_bytes < BLOCK_SIZE) {
-    //     memset((char *)buf + valid_bytes, 0, BLOCK_SIZE - valid_bytes);
-    // }
     
     return valid_bytes;
 }

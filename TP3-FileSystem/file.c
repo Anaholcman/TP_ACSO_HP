@@ -4,6 +4,8 @@
 #include "file.h"
 #include "inode.h"
 #include "diskimg.h"
+#include <string.h>
+
 
 #define BLOCK_SIZE 512
 

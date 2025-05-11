@@ -45,6 +45,9 @@ int file_getblock(struct unixfilesystem *fs, int inumber, int blockNum, void *bu
         fprintf(stderr, "DEBUG root: valid_bytes = %d, first 4 bytes: %02x %02x %02x %02x\n",
             valid_bytes, bytes[0], bytes[1], bytes[2], bytes[3]);
     }
+    if (valid_bytes < BLOCK_SIZE) {
+        memset((char *)buf + valid_bytes, 0, BLOCK_SIZE - valid_bytes);
+    }
     
     return valid_bytes;
 }

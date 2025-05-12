@@ -20,9 +20,8 @@ int pathname_lookup(struct unixfilesystem *fs, const char *pathname) {
     while (token != NULL) {
         struct direntv6 entry;
         int dir_name = directory_findname(fs, token, inumber, &entry);
-        if (dir_name < 0) {
-            return -1;  
-        }
+        if (dir_name < 0) return -1;  
+
         inumber = entry.d_inumber;
         token = strtok(NULL, "/");
     }

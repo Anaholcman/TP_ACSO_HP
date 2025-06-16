@@ -77,17 +77,10 @@ class ThreadPool {
     mutex queueLock;                        // mutex to protect the queue of tasks
 
     queue<function<void(void)>> tasks;  // la cola de tareas
-    Semaphore taskAvailable{0};         // semáforo que avisa al dispatcher cuando hay tareas
-    Semaphore workersAvailable;         // semáforo de workers libres
-    atomic<int> pendingTasks{0};  
+    Semaphore taskAvailable{0};         // semaforo que avisa cuando hay tareas
+    Semaphore workersAvailable;         // semaforo de workers libres
+    atomic<int> pendingTasks{0};        // tareas pendientes (empieza en 0)
   
-    /* ThreadPools are the type of thing that shouldn't be cloneable, since it's
-    * not clear what it means to clone a ThreadPool (should copies of all outstanding
-    * functions to be executed be copied?).
-    *
-    * In order to prevent cloning, we remove the copy constructor and the
-    * assignment operator.  By doing so, the compiler will ensure we never clone
-    * a ThreadPool. */
     ThreadPool(const ThreadPool& original) = delete;
     ThreadPool& operator=(const ThreadPool& rhs) = delete;
 };

@@ -80,6 +80,9 @@ class ThreadPool {
     Semaphore taskAvailable{0};         // semaforo que avisa cuando hay tareas
     Semaphore workersAvailable;         // semaforo de workers libres
     atomic<int> pendingTasks{0};        // tareas pendientes (empieza en 0)
+    
+    mutex waitMutex;
+    condition_variable waitCv; 
   
     ThreadPool(const ThreadPool& original) = delete;
     ThreadPool& operator=(const ThreadPool& rhs) = delete;
